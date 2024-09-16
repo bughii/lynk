@@ -87,3 +87,26 @@ export const signup = async (req, res, next) => {
     return res.status(500).send("Internal server error");
   }
 };
+
+export const getUserInfo = async (req, res, next) => {
+  try {
+    // Questa funzione viene chiamata insieme al middleware verifyToken
+    // verifyToken ritorna l'id dell'utente
+    // Quindi cerco l'utente con quell'id
+    const userData = await User.findById(req.userId);
+    if (!userData) {
+      return res.status(404).send("Utente non trovato");
+    }
+
+    return res.status(200).json({
+      id: userData.id,
+      email: userData.email,
+      profileSetup: userData.profileSetup,
+      userName: userData.userName,
+      image: userData.image,
+    });
+  } catch (error) {
+    console.log({ error });
+    return res.status(500).send("Internal server error");
+  }
+};

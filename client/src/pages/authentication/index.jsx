@@ -12,10 +12,11 @@ import { toast } from "sonner";
 import { apiClient } from "../../lib/api-client";
 import { SIGNUP_ROUTE } from "../../utils/constants";
 import { LOGIN_ROUTE } from "../../utils/constants";
-
+import { useAppStore } from "@/store";
 import { useNavigate } from "react-router-dom";
 
 const Authentication = () => {
+  const { setUserInfo } = useAppStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,7 +67,10 @@ const Authentication = () => {
         );
       }
 
+      // Se la risposta contiene un user id
       if (response.data.user.id) {
+        // Aggiorno lo stato con i dati del server
+        setUserInfo(response.data.user);
         if (response.data.user.profileSetup) navigate("/chat");
         else navigate("/profile");
       }
@@ -90,6 +94,8 @@ const Authentication = () => {
     }
     // 201 = CREATED
     if (response.status === 201) {
+      // Aggiorno lo stato con i dati
+      setUserInfo(response.data.user);
       navigate("/profile");
     }
     console.log({ response });
