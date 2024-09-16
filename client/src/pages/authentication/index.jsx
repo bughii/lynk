@@ -8,15 +8,92 @@ import {
 } from "../../components/ui/Tabs";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { toast } from "sonner";
+import { apiClient } from "../../lib/api-client";
+import { SIGNUP_ROUTE } from "../../utils/constants";
+import { LOGIN_ROUTE } from "../../utils/constants";
+
+import { useNavigate } from "react-router-dom";
 
 const Authentication = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleLogin = () => {};
+  // Funzione per validare i form del login
+  const validateLogin = () => {
+    // Se  l'utente non inserisce una mail
+    if (!email.length) {
+      toast.error("Devi inserire una mail");
+      return false;
+    }
+    // Se l'utente non inserisce una password
+    if (!password.length) {
+      toast.error("Devi inserire una password");
+      return false;
+    }
+    // Se inserisce tutto restituisco true
+    return true;
+  };
 
-  const handleSignup = () => {};
+  // Funzione per validare i form della registrazione
+  const validateSignup = () => {
+    if (!email.length) {
+      toast.error("Devi inserire una mail");
+      return false;
+    }
+    if (!password.length) {
+      toast.error("Devi inserire una password");
+      return false;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Le password inserite devono essere uguali");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleLogin = async () => {
+    let response;
+    try {
+      if (validateLogin()) {
+        response = await apiClient.post(
+          LOGIN_ROUTE,
+          { email, password },
+          { withCredentials: true }
+        );
+      }
+
+      if (response.data.user.id) {
+        if (response.data.user.profileSetup) navigate("/chat");
+        else navigate("/profile");
+      }
+    } catch (error) {
+      if (error.response.status === 400) {
+        toast.error("Credenziali non valide");
+      }
+    }
+  };
+
+  const handleSignup = async () => {
+    let response;
+    // Se la validazione della registrazione è andata a buon fine
+    if (validateSignup()) {
+      // Faccio una richiesta POST al server per registrare l'utente
+      response = await apiClient.post(
+        SIGNUP_ROUTE,
+        { email, password },
+        { withCredentials: true }
+      );
+    }
+    // 201 = CREATED
+    if (response.status === 201) {
+      navigate("/profile");
+    }
+    console.log({ response });
+  };
 
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
