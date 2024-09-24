@@ -1,44 +1,48 @@
 import mongoose from "mongoose";
-import { genSalt, hash } from "bcrypt";
-
-const { Schema } = mongoose;
-
+import { Schema } from "mongoose";
 // Definisco lo schema dell'utente
-const userSchema = new Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
+const userSchema = new Schema(
+  {
+    email: {
+      type: String,
+      required: [true, "Email required"],
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password required"],
+    },
+    userName: {
+      type: String,
+      required: false,
+      unique: true,
+    },
+    lastLogin: {
+      type: Date,
+      default: Date.now,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    image: {
+      type: String,
+      required: false,
+    },
+    avatar: {
+      type: Number,
+      required: false,
+    },
+    profileSetup: {
+      type: Boolean,
+      default: false,
+    },
+    resetPasswordToken: String,
+    resetPasswordExpiresAt: Date,
+    verificationToken: String,
+    verificationTokenExpiresAt: Date,
   },
-  password: {
-    type: String,
-    required: true,
-  },
-  userName: {
-    type: String,
-    required: false,
-    unique: true,
-  },
-  image: {
-    type: String,
-    required: false,
-  },
-  profileSetup: {
-    type: Boolean,
-    default: false,
-  },
-});
+  { timestamps: true }
+);
 
-// Prima di salvare nel database
-userSchema.pre("save", async function (next) {
-  // Genero un salt
-  // Utile per evitare che password uguali abbiano hash uguali
-  const salt = await genSalt();
-  // Hashing della password con il salt generato
-  this.password = await hash(this.password, salt);
-  next();
-});
-
-const User = mongoose.model("Users", userSchema);
-
-export default User;
+export const User = mongoose.model("Users", userSchema);

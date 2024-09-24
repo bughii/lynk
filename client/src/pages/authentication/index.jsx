@@ -9,16 +9,16 @@ import {
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { toast } from "sonner";
-import { apiClient } from "../../lib/api-client";
-import { SIGNUP_ROUTE } from "../../utils/constants";
-import { LOGIN_ROUTE } from "../../utils/constants";
-import { useAppStore } from "@/store";
+
+import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const Authentication = () => {
-  const { setUserInfo } = useAppStore();
+  const { signup, login } = useAuthStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -44,6 +44,10 @@ const Authentication = () => {
       toast.error("Devi inserire una mail");
       return false;
     }
+    if (!userName.length) {
+      toast.error("Devi inserire un username");
+      return false;
+    }
     if (!password.length) {
       toast.error("Devi inserire una password");
       return false;
@@ -60,50 +64,42 @@ const Authentication = () => {
     let response;
     try {
       if (validateLogin()) {
-        response = await apiClient.post(
-          LOGIN_ROUTE,
-          { email, password },
-          { withCredentials: true }
-        );
-      }
+        await login(email, password);
 
-      // Se la risposta contiene un user id
-      if (response.data.user.id) {
-        // Aggiorno lo stato con i dati del server
-        setUserInfo(response.data.user);
-        if (response.data.user.profileSetup) navigate("/chat");
-        else navigate("/profile");
+        const { user } = useAuthStore.getState();
+
+        if (user) {
+          if (user.profileSetup) {
+            navigate("/chat");
+          } else {
+            navigate("/profile");
+          }
+        }
       }
     } catch (error) {
       if (error.response.status === 400) {
         toast.error("Credenziali non valide");
+      } else {
+        toast.error("Errore nel login");
       }
     }
   };
 
   const handleSignup = async () => {
-    let response;
     // Se la validazione della registrazione è andata a buon fine
     if (validateSignup()) {
-      // Faccio una richiesta POST al server per registrare l'utente
-      response = await apiClient.post(
-        SIGNUP_ROUTE,
-        { email, password },
-        { withCredentials: true }
-      );
+      try {
+        await signup(email, password, userName);
+        navigate("/verify-email");
+      } catch (error) {
+        console.log(error);
+      }
     }
-    // 201 = CREATED
-    if (response.status === 201) {
-      // Aggiorno lo stato con i dati
-      setUserInfo(response.data.user);
-      navigate("/profile");
-    }
-    console.log({ response });
   };
 
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
-      <div className="w-full max-w-5xl bg-[#2c2e3b] shadow-2xl rounded-3xl overflow-hidden">
+      <div className="w-full max-w-4xl bg-[#2c2e3b] shadow-2xl rounded-3xl overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <div className="flex flex-col items-center justify-center bg-[#1b1c24] text-white p-12">
             <h1>Benvenuto</h1>
@@ -150,6 +146,14 @@ const Authentication = () => {
                   >
                     Accedi
                   </Button>
+                  <div className="text-left">
+                    <Link
+                      to="/forgot-password"
+                      className="text-blue-400 hover:text-blue-500 transition-colors"
+                    >
+                      Hai dimenticato la password?
+                    </Link>
+                  </div>
                 </TabsContent>
                 <TabsContent
                   className="w-full flex flex-col gap-7"
@@ -161,6 +165,13 @@ const Authentication = () => {
                     className="p-4 rounded-lg border border-[#4b5563] bg-[#2c2e3b] text-white focus:ring-2 focus:ring-[#4b5563]"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Username"
+                    type="text"
+                    className="p-4 rounded-lg border border-[#4b5563] bg-[#2c2e3b] text-white focus:ring-2 focus:ring-[#4b5563]"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
                   />
                   <Input
                     placeholder="Password"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppStore } from "@/store";
+import { useAuthStore } from "@/store/authStore";
 import { avatars, getAvatar } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,35 +8,98 @@ import { apiClient } from "@/lib/api-client";
 import { IoArrowForward } from "react-icons/io5";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
+import { REMOVE_PROFILE_IMAGE_ROUTE, HOST } from "@/utils/constants";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { userInfo, setUserInfo } = useAppStore();
-  const [userName, setUserName] = useState("");
+  const { user, updateProfile, updateProfileImage, removeProfileImage } =
+    useAuthStore();
   const [image, setImage] = useState(null);
   const [hovered, setHovered] = useState(false);
-  const [selectedColor, setSelectedColor] = useState(0);
+  const [selectedAvatar, setSelectedAvatar] = useState(0);
   const fileInputRef = useRef(null);
 
-  const saveChanges = async () => {};
+  useEffect(() => {
+    console.log("Is the user verified?", user.isVerified);
+    if (user) {
+      setSelectedAvatar(user.avatar || 0);
+      if (user.image) {
+        setImage(`${HOST}/${user.image}`);
+      }
+    }
+  }, [user]);
 
-  const handleButton = () => {};
+  const saveChanges = async () => {
+    try {
+      const response = await updateProfile(selectedAvatar);
+      if (response.status === 200) {
+        toast.success("Profilo aggiornato con successo");
+        navigate("/chat");
+      }
+    } catch (error) {
+      toast.error("Errore durante l'aggiornamento del profilo");
+    }
+  };
 
-  const handleFileInputClick = () => {};
+  const handleButton = () => {
+    if (user.profileSetup) {
+      navigate("/chat");
+    } else {
+      toast.error("Devi configurare il tuo profilo prima");
+    }
+  };
 
-  const handleImageChange = async () => {};
+  const handleFileInputClick = () => {
+    fileInputRef.current.click();
+  };
 
-  const handleDeleteImage = async () => {};
+  const handleImageChange = async (event) => {
+    const file = event.target.files[0];
+
+    if (file) {
+      const formData = new FormData();
+      formData.append("profile-image", file);
+
+      try {
+        const response = await updateProfileImage(formData);
+
+        // Assicurati che la risposta contenga l'immagine e gestisci la visualizzazione
+        if (response?.status === 200 && response.data?.image) {
+          toast.success(response.data.message); // Mostra un messaggio di successo
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          setImage(reader.result);
+        };
+      } catch (error) {
+        toast.error("Errore durante il caricamento dell'immagine");
+        console.error(error);
+      }
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    try {
+      const response = await removeProfileImage();
+      console.log("Response after image removal: ", response);
+      if (response.status === 200) {
+        setImage(null);
+        toast.success("Immagine rimossa con successo");
+      }
+    } catch (error) {
+      toast.error("Errore durante la rimozione dell'immagine");
+      console.log({ error });
+    }
+  };
 
   return (
     <div className="bg-[#1b1c24] h-[100vh] flex items-center justify-center flex-col gap-8 p-6">
       <div className="relative w-full md:w-2/3 lg:w-1/3 bg-[#2c2e3b] p-8 rounded-lg shadow-lg">
-        {/* Close Button */}
         <div className="absolute top-4 right-4" onClick={handleButton}>
           <IoArrowForward className="text-4xl lg:text-6xl text-white text-opacity-90 cursor-pointer" />
         </div>
 
-        {/* Avatar Section */}
         <div className="flex flex-col items-center gap-6">
           <div
             className="relative h-32 w-32 md:w-48 md:h-48 flex items-center justify-center"
@@ -52,7 +115,7 @@ const Profile = () => {
                 />
               ) : (
                 <AvatarImage
-                  src={getAvatar(selectedColor)} // Mostra l'avatar in base al colore selezionato
+                  src={getAvatar(selectedAvatar)}
                   alt="avatar"
                   className="object-cover w-full h-full"
                 />
@@ -81,35 +144,32 @@ const Profile = () => {
             />
           </div>
 
-          {/* Input Section */}
           <div className="w-full flex flex-col gap-4">
             <Input
               placeholder="Email"
               type="email"
               disabled
-              value={userInfo.email}
+              value={user.email}
               className="rounded-lg p-4 bg-[#3b3c48] border-none text-white"
             />
             <Input
               placeholder="Username"
               type="text"
-              onChange={(e) => setUserName(e.target.value)}
-              value={userName}
+              disabled
+              value={user.userName}
               className="rounded-lg p-4 bg-[#3b3c48] border-none text-white"
             />
           </div>
-
-          {/* Color Selection */}
           <div className="flex gap-4 mt-4">
             {avatars.map((avatar, index) => (
               <div
                 key={index}
                 className={`relative h-12 w-12 rounded-full cursor-pointer transition-all duration-300 ${
-                  selectedColor === index
+                  selectedAvatar === index
                     ? "outline outline-white/50 outline-2"
                     : ""
                 }`}
-                onClick={() => setSelectedColor(index)}
+                onClick={() => setSelectedAvatar(index)}
               >
                 <img
                   src={avatar}
@@ -121,7 +181,6 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Save Button */}
         <div className="mt-6">
           <Button
             className="h-12 w-full bg-blue-700 hover:bg-blue-900 transition-all duration-300"

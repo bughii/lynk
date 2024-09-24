@@ -1,72 +1,46 @@
 import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import Authentication from "./pages/authentication";
 import Chat from "./pages/chat";
 import Profile from "./pages/profile";
-import { useAppStore } from "./store";
-import { GET_USER_INFO } from "./utils/constants";
-import { apiClient } from "./lib/api-client";
+import { useAuthStore } from "./store/authStore";
+import Authentication from "./pages/authentication";
+import EmailVerificationPage from "./pages/email-verification";
+import ForgotPasswordPage from "./pages/forgot-password";
+import ResetPasswordPage from "./pages/reset-password";
 
-// Rende visibile il componente children (chat o profile) solo se l'utente è autenticato
 const ProtectedRoute = ({ children }) => {
-  // Recupero lo stato
-  const { userInfo } = useAppStore();
+  const { isAuthenticated, user } = useAuthStore();
 
-  // !!userInfo trasforma userInfo in un boolean
-  const isAuthenticaated = !!userInfo;
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
 
-  // Se l'utente è autenticato, mostro children (chat o profilo)
-  // Se non è autenticato, reindirizzo alla pagina di autenticazione
-  return isAuthenticaated ? children : <Navigate to="/auth" />;
+  if (!user?.isVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
+  return children;
 };
 
-// Reindirizza l'utente autenticato a /chat
-const UnauthenticatedRoute = ({ children }) => {
-  const { userInfo } = useAppStore();
+const RedirectAuthenticatedUser = ({ children }) => {
+  const { isAuthenticated, user } = useAuthStore();
 
-  const isAuthenticated = !!userInfo;
+  if (isAuthenticated && user?.isVerified) {
+    return <Navigate to="/profile" replace />;
+  }
 
-  return isAuthenticated ? <Navigate to="/chat" /> : children;
+  return children;
 };
 
 const App = () => {
-  const { userInfo, setUserInfo } = useAppStore();
-  const [loading, setLoading] = useState(true);
+  // Recupero lo stato con zustand
+  const { isCheckingAuth, checkAuth } = useAuthStore();
 
   useEffect(() => {
-    // Recupero i dati dell'utente
-    const getUserData = async () => {
-      let response;
-      try {
-        // Chiamo l'endpoint per recuperare i dati dell'utente
-        response = await apiClient.get(GET_USER_INFO, {
-          withCredentials: true,
-        });
+    checkAuth();
+  }, [checkAuth]);
 
-        // Se la chiamata va a buon fine e ricevo un id
-        if (response.status === 200 && response.data.id) {
-          setUserInfo(response.data);
-        } else {
-          setUserInfo(undefined);
-        }
-        console.log({ response });
-      } catch (error) {
-        setUserInfo(undefined);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // se userInfo è undefined o null, chiamo getUserData
-    if (!userInfo) {
-      getUserData();
-    } else {
-      setLoading(false);
-    }
-  }, [userInfo, setUserInfo]);
-
-  if (loading) {
+  if (isCheckingAuth) {
     return <div>Loading...</div>;
   }
 
@@ -74,12 +48,11 @@ const App = () => {
     <BrowserRouter>
       <Routes>
         <Route
-          path="/authentication"
+          path="/auth"
           element={
-            <UnauthenticatedRoute>
-              {" "}
-              <Authentication />{" "}
-            </UnauthenticatedRoute>
+            <RedirectAuthenticatedUser>
+              <Authentication />
+            </RedirectAuthenticatedUser>
           }
         />
         <Route
@@ -100,8 +73,25 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/forgot-password"
+          element={
+            <RedirectAuthenticatedUser>
+              <ForgotPasswordPage />
+            </RedirectAuthenticatedUser>
+          }
+        />
+        <Route
+          path="/reset-password/:token"
+          element={
+            <RedirectAuthenticatedUser>
+              <ResetPasswordPage />
+            </RedirectAuthenticatedUser>
+          }
+        />
 
-        <Route path="*" element={<Navigate to="/authentication" />} />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
+        <Route path="*" element={<Navigate to="/auth" />} />
       </Routes>
     </BrowserRouter>
   );
