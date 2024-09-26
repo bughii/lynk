@@ -33,11 +33,13 @@ const Profile = () => {
   const saveChanges = async () => {
     try {
       const response = await updateProfile(selectedAvatar);
-      if (response.status === 200) {
+      console.log("Response after updating profile: ", response);
+      if (response && response.status === 200) {
         toast.success("Profilo aggiornato con successo");
         navigate("/chat");
       }
     } catch (error) {
+      console.error("Error updating profile: ", error);
       toast.error("Errore durante l'aggiornamento del profilo");
     }
   };

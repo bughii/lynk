@@ -92,6 +92,15 @@ const Authentication = () => {
         await signup(email, password, userName);
         navigate("/verify-email");
       } catch (error) {
+        if (error.response && error.response.data) {
+          const { errorType, message } = error.response.data;
+
+          if (errorType === "email_in_use") {
+            toast.error("Email già in uso.");
+          } else if (errorType === "username_in_use") {
+            toast.error("Username già in uso");
+          }
+        }
         console.log(error);
       }
     }
@@ -99,7 +108,7 @@ const Authentication = () => {
 
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
-      <div className="w-full max-w-4xl bg-[#2c2e3b] shadow-2xl rounded-3xl overflow-hidden">
+      <div className="w-full max-w-screen-md lg:max-w-5xl mx-auto bg-[#2c2e3b] shadow-2xl rounded-3xl overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <div className="flex flex-col items-center justify-center bg-[#1b1c24] text-white p-12">
             <h1>Benvenuto</h1>

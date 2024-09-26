@@ -4,6 +4,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import authenticationRoutes from "./routes/authenticationRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
+import setupSocket from "./socket.js";
+import { Server } from "socket.io";
 
 // Dotenv config
 dotenv.config();
@@ -26,10 +29,13 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/api/auth", authenticationRoutes);
+app.use("/api/contacts", contactRoutes);
 
 const server = app.listen(port, () => {
   console.log(`Server sta runnando sulla porta ${port}`);
 });
+
+setupSocket(server);
 
 mongoose
   .connect(databaseURL)

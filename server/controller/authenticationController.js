@@ -333,3 +333,7 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+export const logout = async (req, res) => {
+  res.clearCookie("token").json({ message: "Logged out" });
+};

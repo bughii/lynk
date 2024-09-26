@@ -4,6 +4,7 @@ import {
   addProfileImage,
   removeProfileImage,
   signup,
+  logout,
 } from "../controller/authenticationController.js";
 import { verifyEmail } from "../controller/authenticationController.js";
 import { forgotPassword } from "../controller/authenticationController.js";
@@ -37,5 +38,6 @@ authenticationRoutes.delete(
 authenticationRoutes.post("/verify-email", verifyEmail);
 authenticationRoutes.post("/forgot-password", forgotPassword);
 authenticationRoutes.post("/reset-password/:token", resetPassword);
+authenticationRoutes.post("/logout", logout);
 
 export default authenticationRoutes;

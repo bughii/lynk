@@ -3,21 +3,30 @@ import { Input } from "@/components/ui/input";
 import React from "react";
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { IoArrowBack } from "react-icons/io5";
+import { useNavigate } from "react-router-dom";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { forgotPassword } = useAuthStore();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     await forgotPassword(email);
     setIsSubmitted(true);
   };
+  const handleButton = () => {
+    navigate("/auth");
+  };
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
-      <div className="w-full max-w-lg bg-[#2c2e3b] shadow-2xl rounded-3xl overflow-hidden">
+    <div className="space-mono-regular h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
+      <div className="relative w-full max-w-lg bg-[#2c2e3b] shadow-2xl rounded-3xl overflow-hidden">
+        <div className="absolute top-4 left-4" onClick={handleButton}>
+          <IoArrowBack className="text-4xl lg:text-5xl text-white text-opacity-90 cursor-pointer" />
+        </div>
         <div className="flex flex-col items-center justify-center bg-[#1b1c24] text-white p-12">
           <h1 className="text-3xl font-bold mb-6 text-center text-white">
             Reimposta Password
