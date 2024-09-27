@@ -10,3 +10,6 @@ export const REMOVE_PROFILE_IMAGE_ROUTE = `${AUTH_ROUTES}/remove-profile-image`;
 
 export const CONTACTS_ROUTES = "api/contacts";
 export const ADD_CONTACT_ROUTES = `${CONTACTS_ROUTES}/search`;
+
+export const MESSAGES_ROUTES = "api/messages";
+export const GET_MESSAGES_ROUTE = `${MESSAGES_ROUTES}/get-messages`;

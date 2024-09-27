@@ -69,7 +69,7 @@ function AddContact() {
       </TooltipProvider>
       <Dialog
         open={openNewContactModal}
-        onOpenChange={{ setOpenNewContactModal }}
+        onOpenChange={(isOpen) => setOpenNewContactModal(isOpen)}
       >
         <DialogContent className="bg-[#181920] border-none text-white w-[400px] h-[400px] flex flex-col">
           <DialogHeader>

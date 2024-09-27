@@ -26,7 +26,7 @@ const RedirectAuthenticatedUser = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (isAuthenticated && user?.isVerified) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to="/chat" replace />;
   }
 
   return children;
