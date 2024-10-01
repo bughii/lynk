@@ -28,8 +28,6 @@ const Chat = () => {
       ) : (
         <ChatPageContainer />
       )}
-      {/*<EmptyChatContainer />*/}
-      {/*<ChatPageContainer />*/}
     </div>
   );
 };

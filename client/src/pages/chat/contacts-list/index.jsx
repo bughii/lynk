@@ -1,7 +1,7 @@
 import React from "react";
 import logo from "@/assets/logosite.svg";
 import ProfileInfoComponent from "./components/profile-info";
-import AddContact from "./components/add-contact";
+import AddContact from "../empty-chat-page-container/add-contact";
 
 function ContactsListContainer() {
   return (

@@ -15,6 +15,7 @@ export const verifyToken = (req, res, next) => {
     }
     // If the token is valid, we extract the userId from the decoded object and attach it to the req object so we can use it in the next middleware
     req.userId = decoded.userId;
+    console.log("User ID:", req.userId);
     next();
   } catch (error) {
     console.log("Error verifying token", error);
