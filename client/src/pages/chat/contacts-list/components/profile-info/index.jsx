@@ -69,7 +69,7 @@ function ProfileInfoComponent() {
               />
             </TooltipTrigger>
             <TooltipContent className="bg-[#1c1b1e] border-none text-white">
-              <p>Modifica profilo</p>
+              <p>Logout</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

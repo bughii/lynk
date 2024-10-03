@@ -9,6 +9,7 @@ export const useFriendStore = create((set) => ({
   pendingRequests: [], // List of pending requests
   sentRequests: [], // List of sent requests
   receivedRequests: [], // List of received requests
+  searchedFriendsList: [], // List of searched friends
   error: null,
 
   // Function to send a friend request
@@ -159,4 +160,22 @@ export const useFriendStore = create((set) => ({
       throw error;
     }
   },
+
+  searchFriends: async (searchTerm) => {
+    console.log("search Term", searchTerm);
+    try {
+      const response = await axios.post(`${API_URL}/search-friends`, {
+        searchTerm,
+      });
+      set({ searchedFriendsList: response.data.friends });
+      return response;
+    } catch (error) {
+      const errorMessage = error.response
+        ? error.response.data.message
+        : "Errore durante la ricerca degli amici.";
+      set({ error: errorMessage });
+    }
+  },
+
+  resetSearchedFriends: () => set({ searchedFriendsList: [] }),
 }));

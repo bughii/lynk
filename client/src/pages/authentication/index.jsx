@@ -22,23 +22,23 @@ const Authentication = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Funzione per validare i form del login
+  // Function to validate the login form
   const validateLogin = () => {
-    // Se  l'utente non inserisce una mail
+    // If the email field is empty
     if (!email.length) {
       toast.error("Devi inserire una mail");
       return false;
     }
-    // Se l'utente non inserisce una password
+    // If the password field is empty
     if (!password.length) {
       toast.error("Devi inserire una password");
       return false;
     }
-    // Se inserisce tutto restituisco true
+    // Otherwise, return true
     return true;
   };
 
-  // Funzione per validare i form della registrazione
+  // Function to validate the signup form
   const validateSignup = () => {
     if (!email.length) {
       toast.error("Devi inserire una mail");
@@ -86,7 +86,7 @@ const Authentication = () => {
   };
 
   const handleSignup = async () => {
-    // Se la validazione della registrazione è andata a buon fine
+    // If the signup form is valid
     if (validateSignup()) {
       try {
         await signup(email, password, userName);

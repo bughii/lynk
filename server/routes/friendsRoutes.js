@@ -7,6 +7,7 @@ import {
   rejectRequest,
   getFriends,
   removeFriend,
+  searchFriends,
 } from "../controller/friendsController.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
@@ -19,5 +20,6 @@ friendsRoutes.post("/accept-request", verifyToken, acceptRequest);
 friendsRoutes.post("/reject-request", verifyToken, rejectRequest);
 friendsRoutes.get("/get-friends", verifyToken, getFriends);
 friendsRoutes.post("/remove-friend", verifyToken, removeFriend);
+friendsRoutes.post("/search-friends", verifyToken, searchFriends);
 
 export default friendsRoutes;

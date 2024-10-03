@@ -109,18 +109,9 @@ export const acceptRequest = async (req, res) => {
     friendshipRequest.status = "accepted";
     await friendshipRequest.save();
 
-    // Create a new friendship document
-    const newFriendship = new Friendship({
-      requester: friendshipRequest.requester,
-      recipient: friendshipRequest.recipient,
-      status: "accepted",
-    });
-
-    await newFriendship.save();
-
     return res.status(200).json({
       message: "Richiesta di amicizia accettata con successo.",
-      friendship: newFriendship,
+      friendship: friendshipRequest,
     });
   } catch (error) {
     console.error("Errore nell'accettare la richiesta:", error);
@@ -229,5 +220,45 @@ export const removeFriend = async (req, res) => {
   } catch (error) {
     console.log({ error });
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const searchFriends = async (req, res) => {
+  try {
+    const { searchTerm } = req.body;
+
+    if (!searchTerm) {
+      return res.status(400).json({ message: "Search term required" });
+    }
+
+    // Sanitize the search term
+    const sanitizedSearchTerm = searchTerm.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+    // The search term is sanitized and case insensitive
+    const regex = new RegExp(sanitizedSearchTerm, "i");
+
+    // Trova tutte le amicizie accettate in cui l'utente è il requester o il recipient
+    const friendships = await Friendship.find({
+      status: "accepted",
+      $or: [{ requester: req.userId }, { recipient: req.userId }],
+    }).populate("requester recipient");
+
+    // Filtra gli amici che corrispondono al termine di ricerca
+    const friends = friendships
+      .map((friendship) => {
+        // Identifica chi è l'amico in base a chi non è l'utente loggato
+        return friendship.requester._id.toString() === req.userId
+          ? friendship.recipient
+          : friendship.requester;
+      })
+      .filter((friend) => regex.test(friend.userName)); // Applica il filtro del termine di ricerca
+
+    return res.status(200).json({ friends });
+  } catch (error) {
+    console.log({ error });
+    return res.status(500).send("Internal server error");
   }
 };

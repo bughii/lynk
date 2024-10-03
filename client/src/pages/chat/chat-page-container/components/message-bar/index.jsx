@@ -32,7 +32,7 @@ function MessageBar() {
     console.log("Socket: ", socket);
     console.log("Selected chat type: ", selectedChatType);
     console.log("Selected chat data: ", selectedChatData);
-    if (selectedChatType === "contact" && socket) {
+    if (selectedChatType === "friend" && socket) {
       socket.emit("sendMessage", {
         sender: user._id,
         content: message,

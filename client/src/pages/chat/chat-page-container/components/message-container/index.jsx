@@ -30,7 +30,7 @@ function MessageContainer() {
       }
     };
     if (selectedChatData._id) {
-      if (selectedChatType === "contact") {
+      if (selectedChatType === "friend") {
         getMessages();
       }
     }
@@ -56,7 +56,7 @@ function MessageContainer() {
               {moment(message.timestamp).format("LL")}
             </div>
           )}
-          {selectedChatType === "contact" && renderDMMessages(message)}
+          {selectedChatType === "friend" && renderDMMessages(message)}
         </div>
       );
     });
