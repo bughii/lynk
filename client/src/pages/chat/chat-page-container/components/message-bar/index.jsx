@@ -2,11 +2,13 @@ import { useSocket } from "@/context/SocketContext";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import EmojiPicker from "emoji-picker-react";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useState } from "react";
 import { GrAttachment } from "react-icons/gr";
 import { IoSend } from "react-icons/io5";
 import { RiEmojiStickerLine } from "react-icons/ri";
+import { apiClient } from "@/lib/api-client.js";
+import { SEND_FILE_ROUTE } from "@/utils/constants.js";
 
 function MessageBar() {
   const [message, setMessage] = useState("");
@@ -15,6 +17,7 @@ function MessageBar() {
   const { user } = useAuthStore();
   const emojiRef = useRef();
   const socket = useSocket();
+  const fileInputRef = useRef();
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -32,6 +35,13 @@ function MessageBar() {
     console.log("Socket: ", socket);
     console.log("Selected chat type: ", selectedChatType);
     console.log("Selected chat data: ", selectedChatData);
+
+    // Controllo se il messaggio è vuoto
+    if (!message.trim()) {
+      console.error("Il messaggio è vuoto");
+      return;
+    }
+
     if (selectedChatType === "friend" && socket) {
       socket.emit("sendMessage", {
         sender: user._id,
@@ -43,6 +53,39 @@ function MessageBar() {
       setMessage("");
     } else {
       console.error("Socket not connected or chat type not contact");
+    }
+  };
+
+  const handleFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (event) => {
+    try {
+      const file = event.target.files[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await apiClient.post(SEND_FILE_ROUTE, formData, {
+          withCredentials: true,
+        });
+
+        if (response.status === 200 && response.data) {
+          if (selectedChatType === "friend") {
+            socket.emit("sendMessage", {
+              sender: user._id,
+              content: undefined,
+              recipient: selectedChatData._id,
+              messageType: "file",
+              fileURL: response.data.filePath,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Errore nel caricamento del file", error);
     }
   };
 
@@ -59,12 +102,21 @@ function MessageBar() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
-        <button className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all">
+        <button
+          className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-transform transform hover:scale-110 active:scale-95"
+          onClick={handleFileUpload}
+        >
           <GrAttachment className="text-2xl" />
         </button>
+        <input
+          type="file"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+        />
         <div className="realtive">
           <button
-            className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
+            className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-transform transform hover:scale-110 active:scale-95 mt-1"
             onClick={() => setEmojiPickerOpen(true)}
           >
             <RiEmojiStickerLine className="text-2xl" />
@@ -80,9 +132,9 @@ function MessageBar() {
         </div>
       </div>
       <button
-        className="bg-[#2c4e97] rounded-md flex items-center justify-center p-5 
-             focus:border-none focus:outline-none focus:text-white 
-             transition-transform duration-300 ease-in-out transform hover:bg-[#365fbc] 
+        className="bg-[#2c4e97] rounded-md flex items-center justify-center p-5
+             focus:border-none focus:outline-none focus:text-white
+             transition-transform duration-300 ease-in-out transform hover:bg-[#365fbc]
              hover:scale-105 active:scale-95"
         onClick={handleSendMessage}
       >

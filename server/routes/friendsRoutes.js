@@ -8,6 +8,8 @@ import {
   getFriends,
   removeFriend,
   searchFriends,
+  getFriendsForPreview,
+  resetUnreadCount,
 } from "../controller/friendsController.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
@@ -21,5 +23,7 @@ friendsRoutes.post("/reject-request", verifyToken, rejectRequest);
 friendsRoutes.get("/get-friends", verifyToken, getFriends);
 friendsRoutes.post("/remove-friend", verifyToken, removeFriend);
 friendsRoutes.post("/search-friends", verifyToken, searchFriends);
+friendsRoutes.get("/get-friends-preview", verifyToken, getFriendsForPreview);
+friendsRoutes.post("/:userId/resetUnreadCount", verifyToken, resetUnreadCount);
 
 export default friendsRoutes;

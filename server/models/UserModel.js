@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Schema } from "mongoose";
+
 // Definisco lo schema dell'utente
 const userSchema = new Schema(
   {
@@ -36,6 +37,14 @@ const userSchema = new Schema(
     profileSetup: {
       type: Boolean,
       default: false,
+    },
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    unreadMessagesCount: {
+      type: Number,
+      default: 0,
     },
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,

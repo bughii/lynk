@@ -6,8 +6,8 @@ import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 
 function ChatInfo() {
-  // It sets the selectedChatType to undefined, redirecting the user to the empy chat page
   const { closeChat, selectedChatData } = useChatStore();
+
   return (
     <div className="h-[10vh] border-b-2 border-[#2f2303b] flex items-center justify-between px-5">
       <div className="flex gap-5 items-center">
@@ -29,11 +29,13 @@ function ChatInfo() {
               )}
             </Avatar>
           </div>
-          <div className="space-mono-regular">
-            {selectedChatData.userName ? `${selectedChatData.userName}` : ""}
+          <div className="flex items-center">
+            <div className="space-mono-regular ml-2">
+              {selectedChatData.userName ? `${selectedChatData.userName}` : ""}
+            </div>
           </div>
         </div>
-        <div className=" ml-auto flex items-center">
+        <div className="ml-auto flex items-center">
           <button
             className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
             onClick={closeChat}

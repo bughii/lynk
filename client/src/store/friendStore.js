@@ -10,6 +10,7 @@ export const useFriendStore = create((set) => ({
   sentRequests: [], // List of sent requests
   receivedRequests: [], // List of received requests
   searchedFriendsList: [], // List of searched friends
+  friendsPreview: [],
   error: null,
 
   // Function to send a friend request
@@ -178,4 +179,28 @@ export const useFriendStore = create((set) => ({
   },
 
   resetSearchedFriends: () => set({ searchedFriendsList: [] }),
+
+  getChatPreview: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/get-friends-preview`);
+      if (response.data.friends) {
+        console.log(response.data.friends);
+      }
+      set({ friendsPreview: response.data.friends });
+      return response;
+    } catch (error) {
+      console.log("Errore nel recupero degli amici", error);
+    }
+  },
+
+  // Esempio di funzione nel tuo store
+  updateFriendStatus: (userId, isOnline) =>
+    set((state) => ({
+      friends: state.friends.map((friend) =>
+        friend._id === userId ? { ...friend, isOnline } : friend
+      ),
+      friendsPreview: state.friendsPreview.map((friend) =>
+        friend._id === userId ? { ...friend, isOnline } : friend
+      ),
+    })),
 }));

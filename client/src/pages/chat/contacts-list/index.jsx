@@ -18,15 +18,96 @@ import {
   FaUserClock,
   FaInbox,
   FaUsers,
-  FaPlus,
 } from "react-icons/fa";
 import StartChat from "./components/start-chat";
+import { useChatStore } from "@/store/chatStore";
+import { useEffect } from "react";
+import { useFriendStore } from "@/store/friendStore";
+import ChatPreview from "@/components/chat-preview.jsx";
+import { useSocket } from "@/context/SocketContext";
+import CreateGroup from "./components/create-group";
+import GroupPreview from "@/components/group-preview.jsx";
 
 function ContactsListContainer() {
   const [openFriendsDialog, setOpenFriendsDialog] = useState(false);
   const [openRequestsDialog, setOpenRequestsDialog] = useState(false);
   const [openPendingDialog, setOpenPendingDialog] = useState(false);
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState(false);
+
+  const {
+    setDirectMessagesFriends,
+    directMessagesFriends,
+    groups,
+    setGroups,
+    fetchUserGroups,
+  } = useChatStore();
+
+  const { getChatPreview } = useFriendStore();
+  const socket = useSocket();
+
+  useEffect(() => {
+    const getFriends = async () => {
+      const response = await getChatPreview();
+      if (response.data.friends) {
+        setDirectMessagesFriends(response.data.friends);
+      }
+    };
+
+    const getGroups = async () => {
+      const response = await fetchUserGroups();
+      if (response.data.groups) {
+        console.log("Fetched groups:", response.data.groups);
+        setGroups(response.data.groups);
+      }
+    };
+
+    getFriends();
+    getGroups();
+
+    if (socket) {
+      console.log("Socket connected:", socket.id);
+
+      socket.on("connect", () => {
+        console.log("Socket reconnected:", socket.id);
+      });
+
+      socket.on("receiveMessage", handleNewMessage);
+      socket.on("newGroup", handleNewGroup);
+    }
+
+    function handleNewMessage(message) {
+      console.log("Received new message:", message);
+      getFriends();
+      fetchUserGroups();
+    }
+
+    function handleNewGroup(newGroup) {
+      console.log("Received new group event:", newGroup);
+      setGroups((prevGroups) => {
+        console.log("Previous groups:", prevGroups);
+        if (!prevGroups.some((group) => group._id === newGroup._id)) {
+          const updatedGroups = [...prevGroups, newGroup];
+          console.log("Updated groups:", updatedGroups);
+          return updatedGroups;
+        }
+        return prevGroups;
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.off("connect");
+        socket.off("receiveMessage", handleNewMessage);
+        socket.off("newGroup", handleNewGroup);
+      }
+    };
+  }, [
+    socket,
+    setDirectMessagesFriends,
+    setGroups,
+    fetchUserGroups,
+    getChatPreview,
+  ]);
 
   return (
     <div className="relative md:w-[40vw] lg:w-[30vw] xl:w-[20vw] bg-[#1b1c24] border-r-2 border-[#2f303b] w-full">
@@ -61,13 +142,20 @@ function ContactsListContainer() {
 
       <div className="my-5">
         <div className="flex items-center justify-between pr-10">
-          <Title text="Messaggi" />
+          <Title text="Messaggi privati" />
           <StartChat />
+        </div>
+        <div className="max-h-[30vh] overflow-y-auto scrollbar-hidden">
+          <ChatPreview />
         </div>
       </div>
       <div className="my-5">
         <div className="flex items-center justify-between pr-10">
           <Title text="Gruppi" />
+          <CreateGroup />
+        </div>
+        <div className="max-h-[30vh] overflow-y-auto scrollbar-hidden">
+          <GroupPreview groups={groups} isChannel={true} />
         </div>
       </div>
 

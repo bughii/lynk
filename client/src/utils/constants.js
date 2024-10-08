@@ -13,3 +13,10 @@ export const ADD_CONTACT_ROUTES = `${CONTACTS_ROUTES}/search`;
 
 export const MESSAGES_ROUTES = "api/messages";
 export const GET_MESSAGES_ROUTE = `${MESSAGES_ROUTES}/get-messages`;
+export const SEND_FILE_ROUTE = `${MESSAGES_ROUTES}/upload-file`;
+
+export const FRIENDS_ROUTES = "api/friendship";
+export const GET_FRIENDS_PREVIEW_ROUTE = `${FRIENDS_ROUTES}/get-friends-preview`;
+
+export const GROUPS_ROUTES = "api/groups";
+export const CREATE_GROUP_ROUTE = `${GROUPS_ROUTES}/create-group`;

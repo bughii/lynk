@@ -107,7 +107,7 @@ const Authentication = () => {
   };
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
+    <div className="space-mono-regular h-screen w-screen flex items-center justify-center bg-[#1b1c24]">
       <div className="w-full max-w-screen-md lg:max-w-5xl mx-auto bg-[#2c2e3b] shadow-2xl rounded-3xl overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <div className="flex flex-col items-center justify-center bg-[#1b1c24] text-white p-12">

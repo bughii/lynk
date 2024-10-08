@@ -7,6 +7,7 @@ import Authentication from "./pages/authentication";
 import EmailVerificationPage from "./pages/email-verification";
 import ForgotPasswordPage from "./pages/forgot-password";
 import ResetPasswordPage from "./pages/reset-password";
+import { usePageTitle } from "./components/dynamic-title";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -33,6 +34,7 @@ const RedirectAuthenticatedUser = ({ children }) => {
 };
 
 const App = () => {
+  usePageTitle();
   // Recupero lo stato con zustand
   const { isCheckingAuth, checkAuth } = useAuthStore();
 

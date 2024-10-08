@@ -9,6 +9,7 @@ import setupSocket from "./socket.js";
 import { Server } from "socket.io";
 import messagesRoutes from "./routes/messagesRoutes.js";
 import friendsRoutes from "./routes/friendsRoutes.js";
+import groupRoutes from "./routes/groupRoutes.js";
 
 // Dotenv config
 dotenv.config();
@@ -27,6 +28,8 @@ app.use(
 );
 
 app.use("/uploads/profiles", express.static("uploads/profiles"));
+app.use("/uploads/files", express.static("uploads/files"));
+
 app.use(cookieParser());
 app.use(express.json());
 
@@ -34,6 +37,7 @@ app.use("/api/auth", authenticationRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/messages", messagesRoutes);
 app.use("/api/friendship", friendsRoutes);
+app.use("/api/groups", groupRoutes);
 
 const server = app.listen(port, () => {
   console.log(`Server sta runnando sulla porta ${port}`);

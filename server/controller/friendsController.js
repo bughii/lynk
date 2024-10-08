@@ -1,5 +1,6 @@
 import { User } from "../models/UserModel.js";
-
+import mongoose from "mongoose";
+import { Message } from "../models/MessagesModel.js";
 import { Friendship } from "../models/friendsModel.js";
 
 // Send a friend request
@@ -260,5 +261,79 @@ export const searchFriends = async (req, res) => {
   } catch (error) {
     console.log({ error });
     return res.status(500).send("Internal server error");
+  }
+};
+
+export const getFriendsForPreview = async (req, res) => {
+  try {
+    let { userId } = req;
+
+    userId = new mongoose.Types.ObjectId(userId);
+    const friends = await Message.aggregate([
+      {
+        // Find all messages where the user is the sender or recipient
+        $match: {
+          $or: [{ sender: userId }, { recipient: userId }],
+        },
+      },
+      {
+        // Sort the messages from the latest to the oldest
+        $sort: { timestamp: -1 },
+      },
+      {
+        $group: {
+          _id: {
+            // Determine who is the friend
+            $cond: {
+              if: { $eq: ["$sender", userId] },
+              then: "$recipient",
+              else: "$sender",
+            },
+          },
+          lastMessageTime: { $first: "$timestamp" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "friend",
+        },
+      },
+      {
+        $unwind: "$friend",
+      },
+      {
+        $project: {
+          _id: 1,
+          userName: "$friend.userName",
+          email: "$friend.email",
+          avatar: "$friend.avatar",
+          image: "$friend.image",
+          isOnline: "$friend.isOnline",
+          lastMessageTime: 1,
+        },
+      },
+      {
+        $sort: { lastMessageTime: -1 },
+      },
+    ]);
+
+    return res.status(200).json({ friends });
+  } catch (error) {
+    console.log({ error });
+  }
+};
+
+export const resetUnreadCount = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    await User.findByIdAndUpdate(userId, { unreadMessagesCount: 0 });
+
+    res.status(200).json({ message: "Unread count reset" });
+  } catch (error) {
+    console.log({ error });
+    res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -1,4 +1,3 @@
-import React from "react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
 import { useState } from "react";
