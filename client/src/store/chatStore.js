@@ -34,12 +34,10 @@ export const useChatStore = create(
       setDirectMessagesFriends: (directMessagesFriends) =>
         set({ directMessagesFriends }),
 
-      addGroup: (newGroup) =>
-        set((state) => {
-          console.log("Adding new group to store:", newGroup);
-          const updatedGroups = [...state.groups, newGroup];
-          return { groups: updatedGroups };
-        }),
+      addGroup: (group) =>
+        set((state) => ({
+          groups: [...state.groups, group],
+        })),
 
       closeChat: () =>
         set({
@@ -57,11 +55,11 @@ export const useChatStore = create(
             {
               ...message,
               recipient:
-                selectedChatType === "channel"
+                selectedChatType === "group"
                   ? message.recipient
                   : message.recipient._id,
               sender:
-                selectedChatType === "channel"
+                selectedChatType === "group"
                   ? message.sender
                   : message.sender._id,
             },
@@ -119,6 +117,19 @@ export const useChatStore = create(
           unreadMessagesCount: state.unreadMessagesCount,
           totalUnreadCount: state.getTotalUnreadCount(),
         });
+      },
+
+      updateGroupList: (message) => {
+        const groups = get().groups;
+        const data = groups.find((group) => group._id === message.groupId);
+        const index = groups.findIndex(
+          (group) => group._id === message.groupId
+        );
+
+        if (index !== -1 && index !== undefined) {
+          groups.splice(index, 1);
+          groups.unshift(data);
+        }
       },
     }),
     {

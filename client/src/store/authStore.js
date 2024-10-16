@@ -23,6 +23,7 @@ export const useAuthStore = create((set, get) => ({
       throw new Error(error.response.data.message);
     }
   },
+
   login: async (email, password) => {
     try {
       const response = await axios.post(`${API_URL}/login`, {

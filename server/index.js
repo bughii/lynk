@@ -6,7 +6,6 @@ import mongoose from "mongoose";
 import authenticationRoutes from "./routes/authenticationRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import setupSocket from "./socket.js";
-import { Server } from "socket.io";
 import messagesRoutes from "./routes/messagesRoutes.js";
 import friendsRoutes from "./routes/friendsRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";

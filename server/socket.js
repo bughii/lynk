@@ -1,6 +1,7 @@
 import { Server as SocketIOServer } from "socket.io";
 import { Message } from "./models/MessagesModel.js";
 import { User } from "./models/UserModel.js";
+import { Group } from "./models/GroupModel.js";
 
 // Setting up the server on which the websockets connections will be handled
 const setupSocket = (server) => {
@@ -67,30 +68,48 @@ const setupSocket = (server) => {
     }
   };
 
-  // Esempio di come potrebbe apparire notifyNewGroup
-  const notifyNewGroup = (newGroup) => {
-    console.log("notifyNewGroup function called");
-    console.log("New group details:", JSON.stringify(newGroup, null, 2));
+  const sendGroupMessage = async (message) => {
+    const { groupId, sender, content, messageType, fileURL } = message;
 
-    const groupMembers = newGroup.members.concat(newGroup.admin);
-    console.log("Group members to notify:", groupMembers);
-
-    groupMembers.forEach((memberId) => {
-      console.log("Attempting to emit to member:", memberId.toString());
-      const socketId = userSocketMap.get(memberId.toString());
-      if (socketId) {
-        console.log(
-          "Socket found for member:",
-          memberId.toString(),
-          "SocketId:",
-          socketId
-        );
-        io.to(socketId).emit("newGroup", newGroup);
-        console.log("Emitted newGroup event to socket:", socketId);
-      } else {
-        console.log("No socket found for member:", memberId.toString());
-      }
+    const createdMessage = await Message.create({
+      sender,
+      recipient: null,
+      content,
+      messageType,
+      timestamp: new Date(),
+      fileURL,
     });
+
+    const messageData = await Message.findById(createdMessage._id)
+      .populate("sender", "id email userName image avatar")
+      .exec();
+
+    await Group.findByIdAndUpdate(groupId, {
+      $push: { messages: messageData._id },
+    });
+
+    const group = await Group.findById(groupId).populate("members");
+
+    const finalData = { ...messageData._doc, groupId: group._id };
+
+    if (group && group.members) {
+      group.members.forEach((member) => {
+        const memberSocketId = userSocketMap.get(member._id.toString());
+        if (memberSocketId) {
+          io.to(memberSocketId).emit("receiveGroupMessage", finalData);
+        } else {
+          const recipientUnreadMessages =
+            unreadMessagesMap.get(member._id.toString()) || {};
+          recipientUnreadMessages[sender.toString()] =
+            (recipientUnreadMessages[sender.toString()] || 0) + 1;
+          unreadMessagesMap.set(member._id.toString(), recipientUnreadMessages);
+        }
+      });
+      const adminSocketId = userSocketMap.get(group.admin._id.toString());
+      if (adminSocketId) {
+        io.to(adminSocketId).emit("receiveGroupMessage", finalData);
+      }
+    }
   };
 
   io.on("connection", async (socket) => {
@@ -107,16 +126,27 @@ const setupSocket = (server) => {
         const unreadMessages = unreadMessagesMap.get(userId) || {};
         socket.emit("unreadMessagesState", unreadMessages);
       });
-    } else {
-      console.log("User ID not provided during connection");
-    }
 
-    socket.on("sendMessage", sendMessage);
-    socket.on("disconnect", async () => {
-      await User.findByIdAndUpdate(userId, { isOnline: false });
-      disconnect(socket);
-    });
+      socket.on("newGroup", async (group) => {
+        const populatedGroup = await Group.findById(group._id)
+          .populate("members", "id email userName image avatar")
+          .populate("admin", "id email userName image avatar");
+
+        populatedGroup.members.forEach((member) => {
+          const memberSocketId = userSocketMap.get(member._id.toString());
+          if (memberSocketId) {
+            io.to(memberSocketId).emit("groupCreated", populatedGroup);
+          }
+        });
+      });
+
+      socket.on("sendMessage", sendMessage);
+      socket.on("sendGroupMessage", sendGroupMessage);
+      socket.on("disconnect", async () => {
+        await User.findByIdAndUpdate(userId, { isOnline: false });
+        disconnect(socket);
+      });
+    }
   });
 };
-
 export default setupSocket;

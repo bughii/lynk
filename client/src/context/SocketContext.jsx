@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { HOST } from "@/utils/constants";
 import { io } from "socket.io-client";
@@ -17,7 +17,12 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState();
   const { user } = useAuthStore();
   const { updateFriendStatus } = useFriendStore();
-  const { incrementUnreadCount, setUnreadMessagesCount } = useChatStore();
+  const {
+    incrementUnreadCount,
+    setUnreadMessagesCount,
+    addGroup,
+    updateGroupList,
+  } = useChatStore();
 
   useEffect(() => {
     // If the user is authenticated, create a new socket connection
@@ -80,13 +85,51 @@ export const SocketProvider = ({ children }) => {
         updateFriendStatus(userId, isOnline);
       });
 
+      newSocket.on("groupCreated", (group) => {
+        console.log("Received new group:", group);
+        addGroup(group);
+      });
+
+      const handleReceiveGroupMessage = (message) => {
+        const { selectedChatData, selectedChatType, addMessage } =
+          useChatStore.getState();
+        console.log("Current chat:", selectedChatType, selectedChatData);
+        console.log("Incoming message:", message);
+        if (
+          selectedChatType === "group" &&
+          selectedChatData._id === message.groupId
+        ) {
+          console.log("Adding message to store");
+          addMessage(message);
+        } else {
+          console.log(
+            "Message not added to store. Reason:",
+            selectedChatType !== "group"
+              ? "Not in a group chat"
+              : "Group ID mismatch"
+          );
+        }
+        updateGroupList(message);
+      };
+
+      newSocket.on("receiveGroupMessage", (message) => {
+        console.log("Received group message:", message);
+        handleReceiveGroupMessage(message);
+      });
+
       setSocket(newSocket);
 
       return () => {
         newSocket.disconnect();
       };
     }
-  }, [user, updateFriendStatus, incrementUnreadCount, setUnreadMessagesCount]);
+  }, [
+    user,
+    updateFriendStatus,
+    incrementUnreadCount,
+    setUnreadMessagesCount,
+    addGroup,
+  ]);
 
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>

@@ -21,7 +21,7 @@ import {
 } from "react-icons/fa";
 import StartChat from "./components/start-chat";
 import { useChatStore } from "@/store/chatStore";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useFriendStore } from "@/store/friendStore";
 import ChatPreview from "@/components/chat-preview.jsx";
 import { useSocket } from "@/context/SocketContext";
@@ -34,13 +34,7 @@ function ContactsListContainer() {
   const [openPendingDialog, setOpenPendingDialog] = useState(false);
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState(false);
 
-  const {
-    setDirectMessagesFriends,
-    directMessagesFriends,
-    groups,
-    setGroups,
-    fetchUserGroups,
-  } = useChatStore();
+  const { setDirectMessagesFriends, groups, fetchUserGroups } = useChatStore();
 
   const { getChatPreview } = useFriendStore();
   const socket = useSocket();
@@ -53,16 +47,8 @@ function ContactsListContainer() {
       }
     };
 
-    const getGroups = async () => {
-      const response = await fetchUserGroups();
-      if (response.data.groups) {
-        console.log("Fetched groups:", response.data.groups);
-        setGroups(response.data.groups);
-      }
-    };
-
     getFriends();
-    getGroups();
+    fetchUserGroups();
 
     if (socket) {
       console.log("Socket connected:", socket.id);
@@ -72,42 +58,20 @@ function ContactsListContainer() {
       });
 
       socket.on("receiveMessage", handleNewMessage);
-      socket.on("newGroup", handleNewGroup);
     }
 
     function handleNewMessage(message) {
       console.log("Received new message:", message);
       getFriends();
-      fetchUserGroups();
-    }
-
-    function handleNewGroup(newGroup) {
-      console.log("Received new group event:", newGroup);
-      setGroups((prevGroups) => {
-        console.log("Previous groups:", prevGroups);
-        if (!prevGroups.some((group) => group._id === newGroup._id)) {
-          const updatedGroups = [...prevGroups, newGroup];
-          console.log("Updated groups:", updatedGroups);
-          return updatedGroups;
-        }
-        return prevGroups;
-      });
     }
 
     return () => {
       if (socket) {
         socket.off("connect");
         socket.off("receiveMessage", handleNewMessage);
-        socket.off("newGroup", handleNewGroup);
       }
     };
-  }, [
-    socket,
-    setDirectMessagesFriends,
-    setGroups,
-    fetchUserGroups,
-    getChatPreview,
-  ]);
+  }, [socket, setDirectMessagesFriends, getChatPreview, fetchUserGroups]);
 
   return (
     <div className="relative md:w-[40vw] lg:w-[30vw] xl:w-[20vw] bg-[#1b1c24] border-r-2 border-[#2f303b] w-full">

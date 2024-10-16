@@ -19,31 +19,28 @@ function GroupPreview({ groups, isChannel }) {
   };
 
   return (
-    <div>
-      <ScrollArea className="h-[250px] overflow-y-auto">
-        <div className="mt-5">
-          {groups.map((group) => (
-            <div
-              key={group._id}
-              className={`pl-5 py-2 transition-all duration-300 cursor-pointer ${
-                selectedChatData && selectedChatData._id === group._id
-                  ? "bg-[#8417ff] hover:bg-[#8317ff]"
-                  : "hover:bg-[#f1f1ff111]"
-              }`}
-              onClick={() => handleClick(group)}
-            >
-              <div className="flex gap-5 items-center justify-start text-neutral-300">
-                {/* Simbolo # con stili aggiornati */}
-                <span className="text-2xl text-gray-500">#</span>
-                <div className="space-mono-regular text-lg text-white">
-                  {group.name ? `${group.name}` : ""}
-                </div>
+    <ScrollArea className="h-[calc(30vh-40px)] overflow-y-auto">
+      <div className="mt-5">
+        {groups.map((group) => (
+          <div
+            key={group._id}
+            className={`pl-5 py-2 transition-all duration-300 cursor-pointer ${
+              selectedChatData && selectedChatData._id === group._id
+                ? "bg-[#8417ff] hover:bg-[#8317ff]"
+                : "hover:bg-[#f1f1ff111]"
+            }`}
+            onClick={() => handleClick(group)}
+          >
+            <div className="flex gap-5 items-center justify-start text-neutral-300">
+              <span className="text-2xl text-gray-500">#</span>
+              <div className="space-mono-regular text-lg text-white">
+                {group.name}
               </div>
             </div>
-          ))}
-        </div>
-      </ScrollArea>
-    </div>
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
   );
 }
 

@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "@/store/chatStore";
 import moment from "moment";
 import { apiClient } from "@/lib/api-client";
-import { GET_MESSAGES_ROUTE } from "@/utils/constants";
+import { GET_GROUP_MESSAGES, GET_MESSAGES_ROUTE } from "@/utils/constants";
 import { HOST } from "@/utils/constants";
-import { MdFolderZip } from "react-icons/md";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { FaFileArchive } from "react-icons/fa";
 import { IoCloseSharp } from "react-icons/io5";
+import { useAuthStore } from "@/store/authStore";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { getAvatar } from "@/lib/utils";
 
 function MessageContainer() {
   const {
@@ -16,6 +18,7 @@ function MessageContainer() {
     selectedChatMessages,
     setSelectedChatMessages,
   } = useChatStore();
+  const { user } = useAuthStore();
   const scrollRef = useRef();
 
   const [showImage, setShowImage] = useState(false);
@@ -37,10 +40,27 @@ function MessageContainer() {
         console.log({ error });
       }
     };
-    if (selectedChatData._id) {
-      if (selectedChatType === "friend") {
-        getMessages();
+
+    const getGroupMessages = async () => {
+      try {
+        const response = await apiClient.get(
+          `${GET_GROUP_MESSAGES}/${selectedChatData._id}`,
+          {
+            withCredentials: true,
+          }
+        );
+        // If the response contains messages, set them in the store
+        if (response.data.messages) {
+          setSelectedChatMessages(response.data.messages);
+        }
+      } catch (error) {
+        console.log({ error });
       }
+    };
+
+    if (selectedChatData._id) {
+      if (selectedChatType === "friend") getMessages();
+      else if (selectedChatType === "group") getGroupMessages();
     }
   }, [selectedChatData, selectedChatType, setSelectedChatMessages]);
 
@@ -68,6 +88,7 @@ function MessageContainer() {
             </div>
           )}
           {selectedChatType === "friend" && renderDMMessages(message)}
+          {selectedChatType === "group" && renderGroupMessages(message)}
         </div>
       );
     });
@@ -169,6 +190,83 @@ function MessageContainer() {
       </div>
     </div>
   );
+
+  const renderGroupMessages = (message) => {
+    const currentUserId = user._id.toString();
+    const isCurrentUser = message.sender._id.toString() === currentUserId;
+    const senderName = message.sender.userName || "Unknown User";
+
+    return (
+      <div className={`mt-5 ${isCurrentUser ? "text-right" : "text-left"}`}>
+        {!isCurrentUser && (
+          <div className="flex items-center mb-1">
+            <Avatar className="h-12 w-12 rounded-full overflow-hidden mr-2">
+              {message.sender.image ? (
+                <AvatarImage
+                  src={`${HOST}/${message.sender.image}`}
+                  alt="profile-image"
+                  className="object-cover w-full h-full bg-black"
+                />
+              ) : (
+                <AvatarImage
+                  src={getAvatar(message.sender.avatar)}
+                  alt="avatar"
+                  className="object-cover w-full h-full"
+                />
+              )}
+            </Avatar>
+            <div className="text-sm text-gray-500">{senderName}</div>
+          </div>
+        )}
+        <div
+          className={`${
+            !isCurrentUser
+              ? "bg-[#16425b]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+              : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
+          } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+        >
+          {message.messageType === "text" && message.content}
+          {message.messageType === "file" &&
+            (checkIfImage(message.fileURL) ? (
+              <div
+                className="cursor-pointer"
+                onClick={() => {
+                  setShowImage(true);
+                  setImageURL(message.fileURL);
+                }}
+              >
+                <img
+                  src={`${HOST}/${message.fileURL}`}
+                  alt="file"
+                  height={300}
+                  width={300}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-white/8 text-3xl bg-black/20 rounded full p-3">
+                  <FaFileArchive />
+                </span>
+                <span>
+                  {message.fileURL.split("/").pop().length > 30
+                    ? message.fileURL.split("/").pop().substring(0, 27) + "..."
+                    : message.fileURL.split("/").pop()}
+                </span>
+                <span
+                  className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                  onClick={() => downloadFile(message.fileURL)}
+                >
+                  <IoMdArrowRoundDown />
+                </span>
+              </div>
+            ))}
+        </div>
+        <div className="text-xs text-gray-500">
+          {moment(message.timestamp).format("LT")}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex-1 overflow-y-auto scrollbar-hidden p-4 px-8 md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">

@@ -51,9 +51,19 @@ function MessageBar() {
         fileUrl: undefined,
       });
       setMessage("");
+    } else if (selectedChatType === "group") {
+      socket.emit("sendGroupMessage", {
+        sender: user._id,
+        content: message,
+        messageType: "text",
+        fileUrl: undefined,
+        groupId: selectedChatData._id,
+      });
     } else {
       console.error("Socket not connected or chat type not contact");
     }
+
+    setMessage("");
   };
 
   const handleFileUpload = () => {
@@ -80,6 +90,14 @@ function MessageBar() {
               recipient: selectedChatData._id,
               messageType: "file",
               fileURL: response.data.filePath,
+            });
+          } else if (selectedChatType === "group") {
+            socket.emit("sendGroupMessage", {
+              sender: user._id,
+              content: undefined,
+              messageType: "file",
+              fileURL: response.data.filePath,
+              groupId: selectedChatData._id,
             });
           }
         }

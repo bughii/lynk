@@ -20,3 +20,4 @@ export const GET_FRIENDS_PREVIEW_ROUTE = `${FRIENDS_ROUTES}/get-friends-preview`
 
 export const GROUPS_ROUTES = "api/groups";
 export const CREATE_GROUP_ROUTE = `${GROUPS_ROUTES}/create-group`;
+export const GET_GROUP_MESSAGES = `${GROUPS_ROUTES}/get-group-messages`;

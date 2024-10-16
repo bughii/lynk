@@ -20,6 +20,7 @@ import { getAvatar } from "@/lib/utils";
 import { useFriendStore } from "@/store/friendStore";
 import { MdDelete } from "react-icons/md";
 import { apiClient } from "@/lib/api-client";
+import { useSocket } from "@/context/SocketContext";
 import { useChatStore } from "@/store/chatStore";
 
 function CreateGroup() {
@@ -32,6 +33,7 @@ function CreateGroup() {
     useFriendStore();
 
   const { addGroup } = useChatStore();
+  const socket = useSocket();
 
   const addFriendToGroup = (friend) => {
     if (!selectedFriends.some((f) => f._id === friend._id)) {
@@ -57,7 +59,7 @@ function CreateGroup() {
   const handleGroupCreation = async () => {
     if (!groupName || selectedFriends.length === 0) {
       setErrorMessage(
-        "Inserisci un nome per il gruppo e seleziona almeno un amico."
+        "Inserisci un nome per il gruppo e seleziona almeno un amico per creare il gruppo"
       );
       return;
     }
@@ -67,14 +69,21 @@ function CreateGroup() {
         CREATE_GROUP_ROUTE,
         {
           name: groupName,
-          members: selectedFriends.map((friend) => friend._id), // Inviamo solo gli ID degli amici
+          members: selectedFriends.map((friend) => friend._id),
         },
         { withCredentials: true }
       );
       if (response.status === 201) {
         console.log("Group created:", response.data.group);
-        setOpenFriendsDialog(false); // Chiudiamo il dialogo dopo la creazione del gruppo
+        setOpenFriendsDialog(false);
         addGroup(response.data.group);
+
+        if (socket) {
+          console.log("Emitting newGroup event", response.data.group);
+          socket.emit("newGroup", response.data.group);
+        } else {
+          console.warn("Socket is not available");
+        }
       }
     } catch (error) {
       console.error("Error creating group:", error.response?.data || error);

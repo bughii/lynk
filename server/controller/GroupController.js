@@ -1,7 +1,6 @@
 import { User } from "../models/UserModel.js";
 import { Group } from "../models/GroupModel.js";
 import mongoose from "mongoose";
-import notifyNewGroup from "../socket.js";
 
 export const createGroup = async (req, res) => {
   try {
@@ -26,9 +25,6 @@ export const createGroup = async (req, res) => {
     });
 
     await newGroup.save();
-    console.log("About to notify new group:", newGroup);
-    notifyNewGroup(newGroup);
-    console.log("Notification sent for new group");
     return res.status(201).json({ group: newGroup });
   } catch (error) {
     console.log({ error });
@@ -39,13 +35,34 @@ export const createGroup = async (req, res) => {
 export const getUserGroups = async (req, res) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.userId);
-    const group = await Group.find({
+    const groups = await Group.find({
       $or: [{ admin: userId }, { members: userId }],
-    }).sort({ updatedAt: -1 });
+    })
+      .sort({ updatedAt: -1 })
+      .populate("members", "id email username image avatar")
+      .populate("admin", "id email username image avatar");
 
-    return res.status(200).json({ groups: group });
+    return res.status(200).json({ groups });
   } catch (error) {
     console.log({ error });
     return res.status(500).json({ message: "Internal server error" });
   }
+};
+
+export const getGroupMessages = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId).populate({
+      path: "messages",
+      populate: { path: "sender", select: "id email userName image avatar" },
+    });
+
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    const messages = group.messages;
+    return res.status(200).json({ messages });
+  } catch (error) {}
 };
