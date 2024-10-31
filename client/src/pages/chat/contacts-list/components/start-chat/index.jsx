@@ -4,7 +4,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 import { useFriendStore } from "@/store/friendStore";
 import { useChatStore } from "@/store/chatStore";
+import { useTranslation } from "react-i18next";
 
 function StartChat() {
   const [openFriendsDialog, setOpenFriendsDialog] = useState(false);
@@ -27,6 +28,7 @@ function StartChat() {
     useFriendStore();
 
   const { setSelectedChatType, setSelectedChatData } = useChatStore();
+  const { t } = useTranslation();
 
   const selectNewChat = (friend) => {
     setOpenFriendsDialog(false);
@@ -56,7 +58,7 @@ function StartChat() {
             />
           </TooltipTrigger>
           <TooltipContent className="bg-[#1c1b1e] border-none mb-3 p-3 text-white">
-            Seleziona un amico
+            {t("mainpage.startChat")}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -64,11 +66,11 @@ function StartChat() {
       <Dialog open={openFriendsDialog} onOpenChange={setOpenFriendsDialog}>
         <DialogContent className="bg-[#181920] border-none text-white w-[400px] h-[400px] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Seleziona un amico</DialogTitle>
+            <DialogTitle>{t("mainpage.startChat")}</DialogTitle>
           </DialogHeader>
           <div>
             <Input
-              placeholder="Cerca amico"
+              placeholder={t("mainpage.placeholderStartChat")}
               className="rounded-lg p-6 bg-[#2c2e3b] border-none"
               onChange={handleSearchFriends}
             />

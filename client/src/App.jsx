@@ -8,6 +8,8 @@ import EmailVerificationPage from "./pages/email-verification";
 import ForgotPasswordPage from "./pages/forgot-password";
 import ResetPasswordPage from "./pages/reset-password";
 import { usePageTitle } from "./components/dynamic-title";
+import Settings from "./pages/chat/contacts-list/components/profile-settings";
+import LanguageProvider from "./context/LanguageProvider";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -48,53 +50,64 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route
-          path="/auth"
-          element={
-            <RedirectAuthenticatedUser>
-              <Authentication />
-            </RedirectAuthenticatedUser>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              {" "}
-              <Chat />{" "}
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              {" "}
-              <Profile />{" "}
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <RedirectAuthenticatedUser>
-              <ForgotPasswordPage />
-            </RedirectAuthenticatedUser>
-          }
-        />
-        <Route
-          path="/reset-password/:token"
-          element={
-            <RedirectAuthenticatedUser>
-              <ResetPasswordPage />
-            </RedirectAuthenticatedUser>
-          }
-        />
+      <LanguageProvider>
+        <Routes>
+          <Route
+            path="/auth"
+            element={
+              <RedirectAuthenticatedUser>
+                <Authentication />
+              </RedirectAuthenticatedUser>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                {" "}
+                <Chat />{" "}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                {" "}
+                <Settings />{" "}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                {" "}
+                <Profile />{" "}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <RedirectAuthenticatedUser>
+                <ForgotPasswordPage />
+              </RedirectAuthenticatedUser>
+            }
+          />
+          <Route
+            path="/reset-password/:token"
+            element={
+              <RedirectAuthenticatedUser>
+                <ResetPasswordPage />
+              </RedirectAuthenticatedUser>
+            }
+          />
 
-        <Route path="/verify-email" element={<EmailVerificationPage />} />
-        <Route path="*" element={<Navigate to="/auth" />} />
-      </Routes>
+          <Route path="/verify-email" element={<EmailVerificationPage />} />
+          <Route path="*" element={<Navigate to="/auth" />} />
+        </Routes>
+      </LanguageProvider>
     </BrowserRouter>
   );
 };

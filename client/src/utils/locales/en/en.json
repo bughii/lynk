@@ -1,0 +1,174 @@
+{
+  "auth": {
+    "welcomeMessage": "Welcome",
+    "enterCredentials": "Enter your credentials",
+    "login": "Sign in",
+    "signup": "Sign up",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot your password?",
+    "errors": {
+      "emailRequired": "You must enter an email",
+      "usernameRequired": "You must enter a username",
+      "passwordRequired": "You must enter a password",
+      "passwordMismatch": "The passwords entered must match",
+      "emailInUse": "Email already in use",
+      "usernameInUse": "Username already in use",
+      "loginError": "Unexpected error during login",
+      "registrationError": "Error during registration"
+    }
+  },
+  "profileSetup": {
+    "save": "Save",
+    "imageDeleteSuccess": "Image deleted successfully",
+    "imageDeleteError": "Error deleting image",
+    "imageUpdateSuccess": "Image updated successfully",
+    "imageUpdateError": "Error updating image",
+    "errorSetup": "You must complete your profile setup before continuing",
+    "updateSuccess": "Profile updated successfully",
+    "updateError": "Error updating profile"
+  },
+  "forgotPassword": {
+    "title": "Reset Password",
+    "text": "Enter your email and we will send you a link to reset your password",
+    "resetText": "If an account exists with the email <strong>{{email}}</strong>, you will receive an email with a reset link.",
+    "sendLink": "Send Link",
+    "enterEmailPlaceholder": "Enter your email"
+  },
+  "resetPassword": {
+    "title": "Reset Password",
+    "placeholder1": "New Password",
+    "placeholder2": "Confirm Password",
+    "resetButton": "Reset Password",
+    "passwordMismatch": "The passwords entered must match",
+    "passwordResetSuccess": "Password reset successfully",
+    "resetSuccessText": "Your password has been reset successfully. You can now login with your new password.",
+    "passwordResetError": "Error resetting password"
+  },
+  "mainpage": {
+    "welcomeMessageEmptyScreen": "Hello",
+    "welcomeMessageEmptyScreen1": "Welcome to",
+    "privateMessages": "Private Messages",
+
+    "startChat": "Start a chat and select a friend",
+    "placeholderStartChat": "Search for a friend",
+    "groups": {
+      "title": "Groups",
+      "createGroupError": "Error creating group",
+      "createGroup": "Create a group",
+      "groupNamePlaceholder": "Enter group name",
+      "searchFriendPlaceholder": "Search for a friend",
+      "createGroupButton": "Create Group"
+    },
+    "friendsDialog": {
+      "friendsList": {
+        "title": "Your Friends",
+        "removeFriend": "Remove Friend",
+        "friendRemovedSuccess": "Friend removed successfully",
+        "friendRemovedError": "Error removing friend",
+        "noFriends": "You have no friends"
+      },
+      "requestsList": {
+        "title": "Requests",
+        "accept": "Accept",
+        "reject": "Reject",
+        "noRequests": "You have no requests",
+        "requestAcceptedSuccess": "Request accepted successfully",
+        "requestAcceptedError": "Error accepting request",
+        "requestRejectedSuccess": "Request rejected successfully",
+        "requestRejectedError": "Error rejecting request"
+      },
+      "pendingList": {
+        "title": "Pending",
+        "cancel": "Cancel",
+        "noPending": "No pending requests",
+        "requestCancelledSuccess": "Request cancelled successfully",
+        "requestCancelledError": "Error cancelling request"
+      },
+      "addFriend": {
+        "title": "Add Friend",
+        "requestSentSuccess": "Request sent successfully",
+        "requestSentError": "Error sending request",
+        "searchFriendPlaceholder": "Search for a friend",
+        "addFriendButton": "Add Friend"
+      }
+    },
+    "logoutDialog": {
+      "logoutTitle": "Logout",
+      "logoutBody": "Are you sure you want to logout?",
+      "logoutButton": "Logout",
+      "cancelButton": "Cancel"
+    }
+  },
+  "settings": {
+    "imageUpdatedSuccess": "Image updated successfully",
+    "imageUpdateError": "Error updating image",
+    "imageRemovedSuccess": "Image removed successfully",
+    "imageRemovedError": "Error removing image",
+    "saveChatSettingsSuccess": "Chat settings saved successfully",
+    "saveChatSettingsError": "Error saving chat settings",
+    "saveLanguageSuccess": "Language saved successfully",
+    "saveLanguageError": "Error saving language",
+    "sidebar": {
+      "settingsTitle": "Settings",
+      "profile": "Profile",
+      "appearance": "Appearance",
+      "language": "Language",
+      "others": "Other Settings",
+      "backToChat": "Back to Chat"
+    },
+    "profile": {
+      "profileTitle": "Profile",
+      "saveProfileSettings": "Save profile settings"
+    },
+    "appearance": {
+      "appearanceTitle": "Appearance",
+      "fontSize": {
+        "title": "Font Size",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "sentMessagesTitle": "Sent Messages",
+      "receivedMessagesTitle": "Received Messages",
+      "messagePreviewSent": "Sent message preview",
+      "messagePreviewReceived": "Received message preview",
+      "saveAppearanceSettings": "Save settings"
+    },
+    "language": {
+      "languageTitle": "Language",
+      "saveLanguage": "Save language",
+      "selectLanguageDescription": "Select a language",
+      "english": "English",
+      "italian": "Italian"
+    },
+    "others": {
+      "othersTitle": "Other Settings",
+      "othersHeader": "Recent login activity",
+      "othersBody": "Here you can see the recent login activity for your account. If you notice any suspicious activity, please contact support immediately.",
+      "table": {
+        "date": "Date",
+        "time": "Time",
+        "recency": "Recency"
+      },
+      "timeAgo": {
+        "daySingular": "day",
+        "dayPlural": "days",
+        "hourSingular": "hour",
+        "hourPlural": "hours",
+        "minuteSingular": "minute",
+        "minutePlural": "minutes",
+        "ago": "ago"
+      },
+      "list": {
+        "liTitle": "Security Tips",
+        "li1": "Do not use the same password on multiple websites",
+        "li2": "Create complex passwords using a combination of letters, numbers, and symbols",
+        "li3": "Regularly change your password, especially if you notice suspicious activity",
+        "li4": "Do not share your password with anyone"
+      }
+    }
+  }
+}

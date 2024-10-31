@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { User } from "./UserModel.js";
 
 const GroupSchema = new mongoose.Schema({
   name: {

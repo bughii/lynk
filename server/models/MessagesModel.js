@@ -32,6 +32,21 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  appearance: {
+    sentMessageColor: {
+      type: String,
+      default: "#3B82F6",
+    },
+    receivedMessageColor: {
+      type: String,
+      default: "#8B5CF6",
+    },
+    fontSize: {
+      type: String,
+      enum: ["small", "medium", "large"],
+      default: "medium",
+    },
+  },
 });
 
 export const Message = mongoose.model("Messages", messageSchema);

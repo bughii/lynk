@@ -1,0 +1,175 @@
+{
+  "auth": {
+    "welcomeMessage": "Benvenuto",
+    "enterCredentials": "Inserisci i tuoi dati",
+    "login": "Accedi",
+    "signup": "Registrati",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Conferma Password",
+    "forgotPassword": "Hai dimenticato la password?",
+    "errors": {
+      "emailRequired": "Devi inserire una mail",
+      "usernameRequired": "Devi inserire un username",
+      "passwordRequired": "Devi inserire una password",
+      "passwordMismatch": "Le password inserite devono essere uguali",
+      "emailInUse": "Email già in uso",
+      "usernameInUse": "Username già in uso",
+      "loginError": "Errore imprevisto durante il login",
+      "registrationError": "Errore durante la registrazione"
+    }
+  },
+  "profileSetup": {
+    "save": "Salva",
+    "imageDeleteSuccess": "Immagine eliminata con successo",
+    "imageDeleteError": "Errore durante l'eliminazione dell'immagine",
+    "imageUpdateSuccess": "Immagine aggiornata con successo",
+    "imageUpdateError": "Errore durante l'aggiornamento dell'immagine",
+    "errorSetup": "Devi completare la configurazione del tuo profilo prima di continuare",
+    "updateSuccess": "Profilo aggiornato con successo",
+    "updateError": "Errore durante l'aggiornamento del profilo"
+  },
+  "forgotPassword": {
+    "title": "Reimposta Password",
+    "text": "Inserisci la tua email e ti invieremo un link per reimpostare la tua password",
+    "resetText": "Se esiste un account con l'email <strong>{{email}}</strong>, riceverai una email con un link per il reset.",
+    "sendLink": "Invia Link",
+    "enterEmailPlaceholder": "Inserisci la tua email"
+  },
+  "resetPassword": {
+    "title": "Reimposta Password",
+    "placeholder1": "Nuova Password",
+    "placeholder2": "Conferma Password",
+    "resetButton": "Reimposta Password",
+    "passwordMismatch": "Le password inserite devono essere uguali",
+    "passwordResetSuccess": "Password reimpostata con successo",
+    "resetSuccessText": "La tua password è stata reimpostata con successo. Ora puoi accedere con la tua nuova password.",
+    "passwordResetError": "Errore durante il reset della password"
+  },
+  "mainpage": {
+    "welcomeMessageEmptyScreen": "Ciao",
+    "welcomeMessageEmptyScreen1": "Benvenuto su",
+    "privateMessages": "Messaggi Privati",
+    "startChat": "Inizia una chat e seleziona un amico",
+    "placeholderStartChat": "Cerca un amico",
+    "groups": {
+      "title": "Gruppi",
+      "createGroupError": "Errore durante la creazione del gruppo",
+      "createGroup": "Crea un gruppo",
+      "groupNamePlaceholder": "Inserisci il nome del gruppo",
+      "searchFriendPlaceholder": "Cerca un amico",
+      "createGroupButton": "Crea Gruppo"
+    },
+    "friendsDialog": {
+      "friendsList": {
+        "title": "I tuoi Amici",
+        "removeFriend": "Rimuovi Amico",
+        "friendRemovedSuccess": "Amico rimosso con successo",
+        "friendRemovedError": "Errore durante la rimozione dell'amico",
+        "noFriends": "Non hai amici"
+      },
+      "requestsList": {
+        "title": "Richieste",
+        "accept": "Accetta",
+        "reject": "Rifiuta",
+        "noRequests": "Non hai richieste",
+        "requestAcceptedSuccess": "Richiesta accettata con successo",
+        "requestAcceptedError": "Errore durante l'accettazione della richiesta",
+        "requestRejectedSuccess": "Richiesta rifiutata con successo",
+        "requestRejectedError": "Errore durante il rifiuto della richiesta"
+      },
+      "pendingList": {
+        "title": "In Attesa",
+        "cancel": "Annulla",
+        "noPending": "Nessuna richiesta in attesa",
+        "requestCancelledSuccess": "Richiesta annullata con successo",
+        "requestCancelledError": "Errore durante l'annullamento della richiesta"
+      },
+      "addFriend": {
+        "title": "Aggiungi Amico",
+        "requestSentSuccess": "Richiesta inviata con successo",
+        "requestSentError": "Errore durante l'invio della richiesta",
+        "searchFriendPlaceholder": "Cerca un amico",
+        "sendRequest": "Invia Richiesta"
+      }
+    },
+    "logoutDialog": {
+      "logoutTitle": "Logout",
+      "logoutBody": "Sei sicuro di voler uscire?",
+      "logoutButton": "Logout",
+      "cancelButton": "Annulla"
+    }
+  },
+
+  "settings": {
+    "imageUpdatedSuccess": "Immagine aggiornata con successo",
+    "imageUpdateError": "Errore durante l'aggiornamento dell'immagine",
+    "imageRemovedSuccess": "Immagine rimossa con successo",
+    "imageRemovedError": "Errore durante la rimozione dell'immagine",
+    "saveChatSettingsSuccess": "Impostazioni della chat salvate con successo",
+    "saveChatSettingsError": "Errore durante il salvataggio delle impostazioni della chat",
+    "saveLanguageSuccess": "Lingua salvata con successo",
+    "saveLanguageError": "Errore durante il salvataggio della lingua",
+
+    "sidebar": {
+      "settingsTitle": "Impostazioni",
+      "profile": "Profilo",
+      "appearance": "Aspetto",
+      "language": "Lingua",
+      "others": "Altre Impostazioni",
+      "backToChat": "Torna alla Chat"
+    },
+    "profile": {
+      "profileTitle": "Profilo",
+      "saveProfileSettings": "Salva le impostazioni del profilo"
+    },
+    "appearance": {
+      "appearanceTitle": "Aspetto",
+      "fontSize": {
+        "title": "Dimensioni del Font",
+        "small": "Piccolo",
+        "medium": "Medio",
+        "large": "Grande"
+      },
+      "sentMessagesTitle": "Messaggi Inviati",
+      "receivedMessagesTitle": "Messaggi Ricevuti",
+      "messagePreviewSent": "Anteprima messaggio inviato",
+      "messagePreviewReceived": "Anteprima messaggio ricevuto",
+      "saveAppearanceSettings": "Salva impostazioni"
+    },
+    "language": {
+      "languageTitle": "Lingua",
+      "saveLanguage": "Salva lingua",
+      "selectLanguageDescription": "Seleziona una lingua",
+      "english": "Inglese",
+      "italian": "Italiano"
+    },
+    "others": {
+      "othersTitle": "Altre Impostazioni",
+      "othersHeader": "Attività di accesso recente",
+      "othersBody": "Di seguitpo sono elencati i tuoi tentativi di accesso più recenti. Se noti attività sospette, ti preghiamo di contattarci immediatamente.",
+      "table": {
+        "date": "Data",
+        "time": "Orario",
+        "recency": "Tempo trascorso"
+      },
+      "timeAgo": {
+        "daySingular": "giorno",
+        "dayPlural": "giorni",
+        "hourSingular": "ora",
+        "hourPlural": "ore",
+        "minuteSingular": "minuto",
+        "minutePlural": "minuti",
+        "ago": "fa"
+      },
+      "list": {
+        "liTitle": "Suggerimenti per la sicurezza",
+        "li1": "Non utilizzare la stessa password su più siti web",
+        "li2": "Crea password complesse con una combinazione di lettere,numeri e simboli",
+        "li3": "Cambia regolarmente la tua password, specialmente se noti attività sospette",
+        "li4": "Non condividere la tua password con nessuno"
+      }
+    }
+  }
+}

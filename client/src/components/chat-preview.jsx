@@ -39,7 +39,7 @@ function ChatPreview({ isChannel = false }) {
                 key={friend._id}
                 className={`pl-5 py-2 transition-all duration-300 cursor-pointer ${
                   selectedChatData && selectedChatData._id === friend._id
-                    ? "bg-[#8417ff] hover:bg-[#8317ff]"
+                    ? "bg-[#126319] hover:bg-[#126319]"
                     : "hover:bg-[#f1f1ff111]"
                 }`}
                 onClick={() => handleClick(friend)}

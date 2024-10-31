@@ -13,7 +13,10 @@ export const createGroup = async (req, res) => {
       return res.status(404).json({ message: "Admin user not found" });
     }
 
+    // Check if all user IDs in the members array actually exist in the db
+    // Find all users whose ID is in the members array
     const validateMembers = await User.find({ _id: { $in: members } });
+    // If all IDs in the members array exist in the db, the length of the array will be the same
     if (validateMembers.length !== members.length) {
       return res.status(404).json({ message: "One or more members not found" });
     }
@@ -35,6 +38,8 @@ export const createGroup = async (req, res) => {
 export const getUserGroups = async (req, res) => {
   try {
     const userId = new mongoose.Types.ObjectId(req.userId);
+
+    // Look for groups where the user is either the admin or a member
     const groups = await Group.find({
       $or: [{ admin: userId }, { members: userId }],
     })

@@ -4,12 +4,12 @@ import { useAuthStore } from "@/store/authStore";
 import { avatars, getAvatar } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiClient } from "@/lib/api-client";
 import { IoArrowForward } from "react-icons/io5";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { REMOVE_PROFILE_IMAGE_ROUTE, HOST } from "@/utils/constants";
+import { HOST } from "@/utils/constants";
+import { useTranslation } from "react-i18next";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -19,6 +19,7 @@ const Profile = () => {
   const [hovered, setHovered] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(0);
   const fileInputRef = useRef(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     console.log("Is the user verified?", user.isVerified);
@@ -35,12 +36,12 @@ const Profile = () => {
       const response = await updateProfile(selectedAvatar);
       console.log("Response after updating profile: ", response);
       if (response && response.status === 200) {
-        toast.success("Profilo aggiornato con successo");
+        toast.success(t("profileSetup.updateSuccess"));
         navigate("/chat");
       }
     } catch (error) {
       console.error("Error updating profile: ", error);
-      toast.error("Errore durante l'aggiornamento del profilo");
+      toast.error(t("profileSetup.updateError"));
     }
   };
 
@@ -48,7 +49,7 @@ const Profile = () => {
     if (user.profileSetup) {
       navigate("/chat");
     } else {
-      toast.error("Devi configurare il tuo profilo prima");
+      toast.error(t("profileSetup.errorSetup"));
     }
   };
 
@@ -66,16 +67,16 @@ const Profile = () => {
       try {
         const response = await updateProfileImage(formData);
 
-        // Assicurati che la risposta contenga l'immagine e gestisci la visualizzazione
+        // Make sure the response is successful and has an image
         if (response?.status === 200 && response.data?.image) {
-          toast.success(response.data.message); // Mostra un messaggio di successo
+          toast.success(t("profileSetup.imageUpdateSuccess"));
         }
         const reader = new FileReader();
         reader.onload = () => {
           setImage(reader.result);
         };
       } catch (error) {
-        toast.error("Errore durante il caricamento dell'immagine");
+        toast.error(t("profileSetup.imageUpdateError"));
         console.error(error);
       }
     }
@@ -87,10 +88,10 @@ const Profile = () => {
       console.log("Response after image removal: ", response);
       if (response.status === 200) {
         setImage(null);
-        toast.success("Immagine rimossa con successo");
+        toast.success(t("profileSetup.imageDeleteSuccess"));
       }
     } catch (error) {
-      toast.error("Errore durante la rimozione dell'immagine");
+      toast.error(t("profileSetup.imageDeleteError"));
       console.log({ error });
     }
   };
@@ -188,7 +189,7 @@ const Profile = () => {
             className="h-12 w-full bg-blue-700 hover:bg-blue-900 transition-all duration-300"
             onClick={saveChanges}
           >
-            Salva
+            {t("profileSetup.save")}
           </Button>
         </div>
       </div>

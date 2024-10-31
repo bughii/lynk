@@ -51,7 +51,6 @@ export const PASSWORD_RESET_SUCCESS_TEMPLATE = `
     <p style="color: #ddd;">For security reasons, we recommend that you:</p>
     <ul style="color: #ddd;">
       <li>Use a strong, unique password</li>
-      <li>Enable two-factor authentication if available</li>
       <li>Avoid using the same password across multiple sites</li>
     </ul>
     <p style="color: #ddd;">Thank you for helping us keep your account secure.</p>

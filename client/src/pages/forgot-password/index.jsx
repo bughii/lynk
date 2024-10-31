@@ -5,11 +5,13 @@ import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { IoArrowBack } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { forgotPassword } = useAuthStore();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -29,24 +31,25 @@ const ForgotPasswordPage = () => {
         </div>
         <div className="flex flex-col items-center justify-center bg-[#1b1c24] text-white p-12">
           <h1 className="text-3xl font-bold mb-6 text-center text-white">
-            Reimposta Password
+            {t("forgotPassword.title")}
           </h1>
           {isSubmitted ? (
-            // Mostra questo messaggio dopo l'invio
             <p className="text-center text-gray-300 mb-6">
-              Se esiste un account con la mail <strong>{email}</strong>,
-              riceverai una mail con un link per il reset.
+              <Trans
+                i18nKey="forgotPassword.resetText"
+                values={{ email }}
+                components={{ strong: <strong /> }}
+              />
             </p>
           ) : (
             <>
               <p className="text-center text-gray-300 mb-6">
-                Inserisci la tua email e ti invieremo un link per reimpostare la
-                password.
+                {t("forgotPassword.text")}
               </p>
 
               <Input
                 type="email"
-                placeholder="Inserisci la tua email"
+                placeholder={t("forgotPassword.enterEmailPlaceholder")}
                 className="p-4 rounded-lg border border-[#4b5563] bg-[#2c2e3b] text-white focus:ring-2 focus:ring-[#4b5563] mb-6"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -57,7 +60,7 @@ const ForgotPasswordPage = () => {
                 className="p-4 bg-[#4b5563] text-white rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"
                 onClick={handleSubmit}
               >
-                Invia link per reimpostare
+                {t("forgotPassword.sendLink")}
               </Button>
             </>
           )}

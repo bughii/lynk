@@ -19,7 +19,9 @@ export const SocketProvider = ({ children }) => {
   const { updateFriendStatus } = useFriendStore();
   const {
     incrementUnreadCount,
+    incrementGroupUnreadCount,
     setUnreadMessagesCount,
+    setUnreadGroupMessagesState,
     addGroup,
     updateGroupList,
   } = useChatStore();
@@ -38,6 +40,7 @@ export const SocketProvider = ({ children }) => {
       newSocket.on("connect", () => {
         console.log("Connected to socket server");
         newSocket.emit("getUnreadMessages");
+        newSocket.emit("getUnreadGroupMessages");
       });
 
       // When the server sends a new message, update the chat store
@@ -79,6 +82,14 @@ export const SocketProvider = ({ children }) => {
         setUnreadMessagesCount(unreadMessages);
       });
 
+      newSocket.on("unreadGroupMessagesState", (unreadGroupMessages) => {
+        console.log(
+          "Received unread group messages state from server:",
+          unreadGroupMessages
+        );
+        setUnreadGroupMessagesState(unreadGroupMessages);
+      });
+
       // When the server sends the user status update, update the friend status
       newSocket.on("userStatusUpdate", (status) => {
         const { userId, isOnline } = status;
@@ -90,25 +101,34 @@ export const SocketProvider = ({ children }) => {
         addGroup(group);
       });
 
+      // Handling group messages
       const handleReceiveGroupMessage = (message) => {
         const { selectedChatData, selectedChatType, addMessage } =
           useChatStore.getState();
-        console.log("Current chat:", selectedChatType, selectedChatData);
-        console.log("Incoming message:", message);
+
+        console.log("Received group message:", message);
+        console.log("Current chat state:", {
+          type: selectedChatType,
+          data: selectedChatData,
+        });
+
+        // Check if the chat is a group chat and if the message belongs to the current group chat
         if (
           selectedChatType === "group" &&
           selectedChatData._id === message.groupId
         ) {
-          console.log("Adding message to store");
+          console.log("Adding message to current group chat");
           addMessage(message);
         } else {
-          console.log(
-            "Message not added to store. Reason:",
-            selectedChatType !== "group"
-              ? "Not in a group chat"
-              : "Group ID mismatch"
-          );
+          // If the message is from a different group chat count it as unread
+          console.log("Incrementing unread count for group:", message.groupId);
+          if (message.sender._id !== user._id) {
+            // Check if the sender is not the current user
+            // If the sender is the current user, the message is already read
+            incrementGroupUnreadCount(message.groupId);
+          }
         }
+
         updateGroupList(message);
       };
 
@@ -127,7 +147,9 @@ export const SocketProvider = ({ children }) => {
     user,
     updateFriendStatus,
     incrementUnreadCount,
+    incrementGroupUnreadCount,
     setUnreadMessagesCount,
+    setUnreadGroupMessagesState,
     addGroup,
   ]);
 

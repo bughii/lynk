@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFriendStore } from "@/store/friendStore";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 function AddContact() {
   const [searchedContacts, setSearchedContacts] = useState([]);
@@ -14,6 +15,7 @@ function AddContact() {
 
   const { addContact } = useAuthStore();
   const { sendRequest } = useFriendStore();
+  const { t } = useTranslation();
 
   const searchContacts = async (searchTerm) => {
     try {
@@ -34,24 +36,21 @@ function AddContact() {
     try {
       const response = await sendRequest(contactId);
       if (response.status === 200) {
-        toast.success("Richiesta di amicizia inviata.");
+        toast.success(t("mainpage.friendsDialog.addFriend.requestSentSuccess"));
       } else {
-        toast.error("Errore nell'invio della richiesta.");
+        toast.error(t("mainpage.friendsDialog.addFriend.requestSentError"));
       }
     } catch (error) {
-      console.error("Errore nell'invio della richiesta:", error);
-      const errorMessage =
-        error.response && error.response.data
-          ? error.response.data.message
-          : "Errore sconosciuto.";
-      toast.error(errorMessage);
+      toast.error(t("mainpage.friendsDialog.addFriend.requestSentError"));
     }
   };
 
   return (
     <div className="flex flex-col">
       <Input
-        placeholder="Cerca amici"
+        placeholder={t(
+          "mainpage.friendsDialog.addFriend.searchFriendPlaceholder"
+        )}
         value={searchTerm}
         onChange={(e) => {
           setSearchTerm(e.target.value);
@@ -88,7 +87,7 @@ function AddContact() {
                 className="ml-auto bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-4"
                 onClick={() => sendFriendRequest(contact._id)}
               >
-                Aggiungi
+                {t("mainpage.friendsDialog.addFriend.addFriendButton")}
               </button>
             </div>
           ))}

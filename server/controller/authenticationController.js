@@ -269,7 +269,9 @@ export const forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(200).json({
+        success: true,
+      });
     }
 
     // Generate a password reset token and set an expiration time

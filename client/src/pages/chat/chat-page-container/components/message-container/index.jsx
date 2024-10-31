@@ -11,12 +11,19 @@ import { useAuthStore } from "@/store/authStore";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
 
+const FONT_SIZES = {
+  small: "1rem", // 14px
+  medium: "2rem", // 16px
+  large: "3rem", // 18px
+};
+
 function MessageContainer() {
   const {
     selectedChatType,
     selectedChatData,
     selectedChatMessages,
     setSelectedChatMessages,
+    chatColors,
   } = useChatStore();
   const { user } = useAuthStore();
   const scrollRef = useRef();
@@ -69,7 +76,7 @@ function MessageContainer() {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedChatMessages]);
+  }, [selectedChatMessages, selectedChatData]);
 
   const renderMessages = () => {
     let lastDate = null;
@@ -133,22 +140,43 @@ function MessageContainer() {
     >
       {message.messageType === "text" && (
         <div
-          className={`${
-            message.sender !== selectedChatData._id
-              ? "bg-[#16425b]/5 text-[#8417ff]/90 border-[#8417ff]/50"
-              : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
-          } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+          style={{
+            backgroundColor:
+              message.sender !== selectedChatData._id
+                ? "rgba(42, 43, 51, 0.05)"
+                : "rgba(22, 66, 91, 0.05)",
+            borderColor:
+              message.sender !== selectedChatData._id
+                ? chatColors.sentMessageColor
+                : chatColors.receivedMessageColor,
+            color:
+              message.sender !== selectedChatData._id
+                ? chatColors.sentMessageColor
+                : chatColors.receivedMessageColor,
+            fontSize: FONT_SIZES[chatColors.fontSize] || FONT_SIZES.medium,
+          }}
+          className="border inline-block p-4 rounded my-1 max-w-[50%] break-words"
         >
           {message.content}
         </div>
       )}
       {message.messageType === "file" && (
         <div
-          className={`${
-            message.sender !== selectedChatData._id
-              ? "bg-[#16425b]/5 text-[#8417ff]/90 border-[#8417ff]/50"
-              : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
-          } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+          style={{
+            backgroundColor:
+              message.sender !== selectedChatData._id
+                ? "rgba(42, 43, 51, 0.05)"
+                : "rgba(22, 66, 91, 0.05)",
+            borderColor:
+              message.sender !== selectedChatData._id
+                ? chatColors.sentMessageColor
+                : chatColors.receivedMessageColor,
+            color:
+              message.sender !== selectedChatData._id
+                ? chatColors.sentMessageColor
+                : chatColors.receivedMessageColor,
+          }}
+          className="border inline-block p-4 rounded my-1 max-w-[50%] break-words"
         >
           {checkIfImage(message.fileURL) ? (
             <div
@@ -167,7 +195,7 @@ function MessageContainer() {
             </div>
           ) : (
             <div className="flex items-center justify-center gap-4">
-              <span className="text-white/8 text-3xl bg-black/20 rounded full p-3">
+              <span className="text-3xl bg-black/20 rounded full p-3">
                 <FaFileArchive />
               </span>
               <span>
@@ -193,76 +221,97 @@ function MessageContainer() {
 
   const renderGroupMessages = (message) => {
     const currentUserId = user._id.toString();
-    const isCurrentUser = message.sender._id.toString() === currentUserId;
+    const isCurrentUser = message.sender._id === currentUserId;
     const senderName = message.sender.userName || "Unknown User";
 
     return (
-      <div className={`mt-5 ${isCurrentUser ? "text-right" : "text-left"}`}>
+      <div
+        className={`flex items-start gap-3 my-4 ${
+          isCurrentUser ? "flex-row-reverse" : "flex-row"
+        }`}
+      >
         {!isCurrentUser && (
-          <div className="flex items-center mb-1">
-            <Avatar className="h-12 w-12 rounded-full overflow-hidden mr-2">
-              {message.sender.image ? (
-                <AvatarImage
-                  src={`${HOST}/${message.sender.image}`}
-                  alt="profile-image"
-                  className="object-cover w-full h-full bg-black"
-                />
-              ) : (
-                <AvatarImage
-                  src={getAvatar(message.sender.avatar)}
-                  alt="avatar"
-                  className="object-cover w-full h-full"
-                />
-              )}
-            </Avatar>
-            <div className="text-sm text-gray-500">{senderName}</div>
-          </div>
-        )}
-        <div
-          className={`${
-            !isCurrentUser
-              ? "bg-[#16425b]/5 text-[#8417ff]/90 border-[#8417ff]/50"
-              : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
-          } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
-        >
-          {message.messageType === "text" && message.content}
-          {message.messageType === "file" &&
-            (checkIfImage(message.fileURL) ? (
-              <div
-                className="cursor-pointer"
-                onClick={() => {
-                  setShowImage(true);
-                  setImageURL(message.fileURL);
-                }}
-              >
-                <img
-                  src={`${HOST}/${message.fileURL}`}
-                  alt="file"
-                  height={300}
-                  width={300}
-                />
-              </div>
+          <Avatar className="h-8 w-8 flex-shrink-0">
+            {message.sender.image ? (
+              <AvatarImage
+                src={`${HOST}/${message.sender.image}`}
+                alt="profile-image"
+                className="object-cover w-full h-full bg-black"
+              />
             ) : (
-              <div className="flex items-center justify-center gap-4">
-                <span className="text-white/8 text-3xl bg-black/20 rounded full p-3">
-                  <FaFileArchive />
-                </span>
-                <span>
-                  {message.fileURL.split("/").pop().length > 30
-                    ? message.fileURL.split("/").pop().substring(0, 27) + "..."
-                    : message.fileURL.split("/").pop()}
-                </span>
-                <span
-                  className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
-                  onClick={() => downloadFile(message.fileURL)}
+              <AvatarImage
+                src={getAvatar(message.sender.avatar)}
+                alt="avatar"
+                className="object-cover w-full h-full"
+              />
+            )}
+          </Avatar>
+        )}
+
+        <div
+          className={`flex flex-col ${
+            isCurrentUser ? "items-end" : "items-start"
+          } max-w-[50%]`}
+        >
+          {!isCurrentUser && (
+            <span className="text-sm text-gray-500 mb-1">{senderName}</span>
+          )}
+
+          <div
+            style={{
+              backgroundColor: isCurrentUser
+                ? "rgba(42, 43, 51, 0.05)"
+                : "rgba(22, 66, 91, 0.05)",
+              borderColor: isCurrentUser
+                ? chatColors.sentMessageColor
+                : chatColors.receivedMessageColor,
+              color: isCurrentUser
+                ? chatColors.sentMessageColor
+                : chatColors.receivedMessageColor,
+              fontSize: FONT_SIZES[chatColors.fontSize] || FONT_SIZES.medium,
+            }}
+            className="border p-3 rounded-lg break-words"
+          >
+            {message.messageType === "text" && message.content}
+            {message.messageType === "file" &&
+              (checkIfImage(message.fileURL) ? (
+                <div
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setShowImage(true);
+                    setImageURL(message.fileURL);
+                  }}
                 >
-                  <IoMdArrowRoundDown />
-                </span>
-              </div>
-            ))}
-        </div>
-        <div className="text-xs text-gray-500">
-          {moment(message.timestamp).format("LT")}
+                  <img
+                    src={`${HOST}/${message.fileURL}`}
+                    alt="file"
+                    className="max-h-[300px] w-auto rounded"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="text-xl bg-black/20 rounded-full p-2">
+                    <FaFileArchive />
+                  </span>
+                  <span className="flex-1 truncate">
+                    {message.fileURL.split("/").pop().length > 30
+                      ? message.fileURL.split("/").pop().substring(0, 27) +
+                        "..."
+                      : message.fileURL.split("/").pop()}
+                  </span>
+                  <button
+                    className="bg-black/20 p-2 text-xl rounded-full hover:bg-black/50 transition-all duration-300"
+                    onClick={() => downloadFile(message.fileURL)}
+                  >
+                    <IoMdArrowRoundDown />
+                  </button>
+                </div>
+              ))}
+          </div>
+
+          <div className="text-xs text-gray-500 mt-1">
+            {moment(message.timestamp).format("LT")}
+          </div>
         </div>
       </div>
     );

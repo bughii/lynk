@@ -4,7 +4,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { FaPlus } from "react-icons/fa";
 import {
   Dialog,
@@ -22,12 +22,16 @@ import { MdDelete } from "react-icons/md";
 import { apiClient } from "@/lib/api-client";
 import { useSocket } from "@/context/SocketContext";
 import { useChatStore } from "@/store/chatStore";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 function CreateGroup() {
   const [openFriendsDialog, setOpenFriendsDialog] = useState(false);
   const [selectedFriends, setSelectedFriends] = useState([]);
-  const [groupName, setGroupName] = useState(""); // Stato per il nome del gruppo
+  const [groupName, setGroupName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const searchInputRef = useRef(null);
+  const { t } = useTranslation();
 
   const { searchedFriendsList, searchFriends, resetSearchedFriends } =
     useFriendStore();
@@ -35,11 +39,27 @@ function CreateGroup() {
   const { addGroup } = useChatStore();
   const socket = useSocket();
 
+  const handleDialogChange = (open) => {
+    setOpenFriendsDialog(open);
+    if (!open) {
+      setSelectedFriends([]);
+      setGroupName("");
+      setErrorMessage("");
+      resetSearchedFriends();
+      if (searchInputRef.current) {
+        searchInputRef.current.value = "";
+      }
+    }
+  };
+
   const addFriendToGroup = (friend) => {
     if (!selectedFriends.some((f) => f._id === friend._id)) {
       setSelectedFriends([...selectedFriends, friend]);
     }
     resetSearchedFriends();
+    if (searchInputRef.current) {
+      searchInputRef.current.value = "";
+    }
   };
 
   const handleSearchFriends = async (e) => {
@@ -58,7 +78,7 @@ function CreateGroup() {
 
   const handleGroupCreation = async () => {
     if (!groupName || selectedFriends.length === 0) {
-      setErrorMessage(
+      toast.error(
         "Inserisci un nome per il gruppo e seleziona almeno un amico per creare il gruppo"
       );
       return;
@@ -75,7 +95,7 @@ function CreateGroup() {
       );
       if (response.status === 201) {
         console.log("Group created:", response.data.group);
-        setOpenFriendsDialog(false);
+        handleDialogChange(false);
         addGroup(response.data.group);
 
         if (socket) {
@@ -87,7 +107,7 @@ function CreateGroup() {
       }
     } catch (error) {
       console.error("Error creating group:", error.response?.data || error);
-      setErrorMessage("Si è verificato un errore nella creazione del gruppo.");
+      toast.error(t("mainpage.groups.createGroupError"));
     }
   };
 
@@ -98,41 +118,39 @@ function CreateGroup() {
           <TooltipTrigger>
             <FaPlus
               className="text-neutral-400 font-light text-opacity-90 text-small hover:text-neutral-100 cursor-pointer transition-all duration-300"
-              onClick={() => setOpenFriendsDialog(true)}
+              onClick={() => handleDialogChange(true)}
             />
           </TooltipTrigger>
           <TooltipContent className="bg-[#1c1b1e] border-none mb-3 p-3 text-white">
-            Crea un gruppo
+            {t("mainpage.groups.createGroup")}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
 
-      <Dialog open={openFriendsDialog} onOpenChange={setOpenFriendsDialog}>
+      <Dialog open={openFriendsDialog} onOpenChange={handleDialogChange}>
         <DialogContent className="bg-[#181920] border-none text-white w-[400px] h-[500px] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Crea un gruppo</DialogTitle>
+            <DialogTitle>{t("mainpage.groups.createGroup")}</DialogTitle>
           </DialogHeader>
 
-          {/* Input per il nome del gruppo */}
           <div className="mb-4">
             <Input
-              placeholder="Nome del gruppo"
+              placeholder={t("mainpage.groups.groupNamePlaceholder")}
               className="rounded-lg p-6 bg-[#2c2e3b] border-none"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
             />
           </div>
 
-          {/* Input per cercare amici */}
           <div>
             <Input
-              placeholder="Cerca amico"
+              placeholder={t("mainpage.groups.searchFriendPlaceholder")}
+              ref={searchInputRef}
               className="rounded-lg p-6 bg-[#2c2e3b] border-none"
               onChange={handleSearchFriends}
             />
           </div>
 
-          {/* Area di scroll per visualizzare i risultati della ricerca degli amici */}
           <ScrollArea className="h-[250px] mb-4">
             <div className="flex flex-col gap-5">
               {searchedFriendsList.map((friend) => (
@@ -164,7 +182,6 @@ function CreateGroup() {
             </div>
           </ScrollArea>
 
-          {/* Sezione per visualizzare gli amici selezionati */}
           <div className="flex flex-wrap gap-4 mt-4">
             <ScrollArea className="h-[100px] w-full overflow-y-auto">
               {selectedFriends.map((friend) => (
@@ -184,18 +201,16 @@ function CreateGroup() {
             </ScrollArea>
           </div>
 
-          {/* Messaggio di errore */}
           {errorMessage && (
             <div className="text-red-500 mt-2">{errorMessage}</div>
           )}
 
-          {/* Pulsante per confermare la creazione del gruppo */}
           <div className="mt-4">
             <button
               className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg"
               onClick={handleGroupCreation}
             >
-              Crea Gruppo
+              {t("mainpage.groups.createGroupButton")}
             </button>
           </div>
         </DialogContent>

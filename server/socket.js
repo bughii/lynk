@@ -19,6 +19,8 @@ const setupSocket = (server) => {
 
   const unreadMessagesMap = new Map();
 
+  const unreadGroupMessagesMap = new Map();
+
   // Handles the disconnection of a socket
   const disconnect = (socket) => {
     console.log(`Client disconnected: ${socket.id}`);
@@ -68,9 +70,11 @@ const setupSocket = (server) => {
     }
   };
 
+  // Handles the sending of a group message
   const sendGroupMessage = async (message) => {
     const { groupId, sender, content, messageType, fileURL } = message;
 
+    // Save the message to the database
     const createdMessage = await Message.create({
       sender,
       recipient: null,
@@ -80,31 +84,40 @@ const setupSocket = (server) => {
       fileURL,
     });
 
+    // Find the message by its ID and populate the sender field
     const messageData = await Message.findById(createdMessage._id)
       .populate("sender", "id email userName image avatar")
       .exec();
 
+    // Find the group by its ID and push the message to the group's messages array
     await Group.findByIdAndUpdate(groupId, {
       $push: { messages: messageData._id },
     });
 
+    // Get the groups members
     const group = await Group.findById(groupId).populate("members");
 
+    // This contains the message data along with the group ID
     const finalData = { ...messageData._doc, groupId: group._id };
 
+    // If the group and its members exist
     if (group && group.members) {
+      // Iterate through each member
       group.members.forEach((member) => {
+        // Get the socket ID of the member
         const memberSocketId = userSocketMap.get(member._id.toString());
+        // If the member is online, send the message to the member
         if (memberSocketId) {
           io.to(memberSocketId).emit("receiveGroupMessage", finalData);
+          // If the member is offline, save the message as an unread message
         } else {
-          const recipientUnreadMessages =
-            unreadMessagesMap.get(member._id.toString()) || {};
-          recipientUnreadMessages[sender.toString()] =
-            (recipientUnreadMessages[sender.toString()] || 0) + 1;
-          unreadMessagesMap.set(member._id.toString(), recipientUnreadMessages);
+          const memberUnreadGroups =
+            unreadGroupMessagesMap.get(member._id.toString()) || {};
+          memberUnreadGroups[groupId] = (memberUnreadGroups[groupId] || 0) + 1;
+          unreadGroupMessagesMap.set(member._id.toString(), memberUnreadGroups);
         }
       });
+      // Same as above, but for the group's admin
       const adminSocketId = userSocketMap.get(group.admin._id.toString());
       if (adminSocketId) {
         io.to(adminSocketId).emit("receiveGroupMessage", finalData);

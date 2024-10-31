@@ -18,6 +18,21 @@ export const useChatStore = create(
       directMessagesFriends: [],
       groups: [],
       unreadMessagesCount: {},
+      unreadGroupMessagesCount: {},
+
+      chatColors: {
+        sentMessageColor: "#3B82F6",
+        receivedMessageColor: "#8B5CF6",
+        fontSize: "medium",
+      },
+      language: "en",
+
+      updateChatColors: (colors) =>
+        set((state) => ({
+          chatColors: { ...state.chatColors, ...colors },
+        })),
+
+      setLanguage: (language) => set({ language }),
 
       setGroups: (newGroups) =>
         set((state) => {
@@ -89,6 +104,15 @@ export const useChatStore = create(
           return { unreadMessagesCount: newCount };
         }),
 
+      incrementGroupUnreadCount: (groupId) =>
+        set((state) => {
+          const newCount = {
+            ...state.unreadGroupMessagesCount,
+            [groupId]: (state.unreadGroupMessagesCount[groupId] || 0) + 1,
+          };
+          return { unreadGroupMessagesCount: newCount };
+        }),
+
       resetUnreadCount: (senderId) =>
         set((state) => {
           const newCount = {
@@ -98,15 +122,32 @@ export const useChatStore = create(
           return { unreadMessagesCount: newCount };
         }),
 
+      resetGroupUnreadCount: (groupId) =>
+        set((state) => {
+          const newCount = {
+            ...state.unreadGroupMessagesCount,
+            [groupId]: 0,
+          };
+          return { unreadGroupMessagesCount: newCount };
+        }),
+
       setUnreadMessagesCount: (newCount) =>
         set({ unreadMessagesCount: newCount }),
 
+      setUnreadGroupMessagesState: (unreadState) =>
+        set({ unreadGroupMessagesCount: unreadState }),
+
       getTotalUnreadCount: () => {
-        const { unreadMessagesCount } = get();
-        return Object.values(unreadMessagesCount).reduce(
+        const { unreadMessagesCount, unreadGroupMessagesCount } = get();
+        const directCount = Object.values(unreadMessagesCount).reduce(
           (total, count) => total + count,
           0
         );
+        const groupCount = Object.values(unreadGroupMessagesCount).reduce(
+          (total, count) => total + count,
+          0
+        );
+        return directCount + groupCount;
       },
 
       debugState: () => {
@@ -137,6 +178,9 @@ export const useChatStore = create(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         unreadMessagesCount: state.unreadMessagesCount,
+        unreadGroupMessagesCount: state.unreadGroupMessagesCount,
+        chatColors: state.chatColors,
+        language: state.language,
       }),
     }
   )

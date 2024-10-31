@@ -6,10 +6,12 @@ import { getAvatar } from "@/lib/utils";
 import { toast } from "sonner";
 import { HOST } from "@/utils/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "react-i18next";
 
 const PendingRequests = () => {
   const { sentRequests, fetchSentRequests, rejectRequest, error } =
     useFriendStore();
+  const { t } = useTranslation();
 
   // Fetching the sent requests
   useEffect(() => {
@@ -21,21 +23,16 @@ const PendingRequests = () => {
       .then((response) => {
         console.log("Risposta accettata:", response);
         if (response.status === 200) {
-          toast.success("Richiesta di amicizia annullata");
+          toast.success(
+            t("mainpage.friendsDialog.pendingList.requestCancelledSuccess")
+          );
           fetchSentRequests();
         }
       })
       .catch((error) => {
-        if (error.response) {
-          console.error("Errore nella risposta del server:", error.response);
-          toast.error(`Errore: ${error.response.data.message}`);
-        } else if (error.request) {
-          console.error("Nessuna risposta ricevuta:", error.request);
-          toast.error("Nessuna risposta dal server.");
-        } else {
-          console.error("Errore nella richiesta:", error.message);
-          toast.error(`Errore nella richiesta: ${error.message}`);
-        }
+        toast.error(
+          t("mainpage.friendsDialog.pendingList.requestCancelledError")
+        );
       });
   };
 
@@ -46,7 +43,7 @@ const PendingRequests = () => {
   return (
     <div className="flex flex-col">
       {sentRequests.length === 0 ? (
-        <p>Nessuna richiesta inviata.</p>
+        <p>{t("mainpage.friendsDialog.pendingList.noPending")}</p>
       ) : (
         <ScrollArea className="h-[250px]">
           {" "}
@@ -82,7 +79,7 @@ const PendingRequests = () => {
                     <button
                       onClick={() => handleCancel(request._id)}
                       className="text-red-500 hover:text-red-400 mr-4"
-                      title="Annulla richiesta"
+                      title={t("mainpage.friendsDialog.pendingList.cancel")}
                     >
                       <FaTimes size={20} />
                     </button>

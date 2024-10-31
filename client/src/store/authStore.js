@@ -19,6 +19,7 @@ export const useAuthStore = create((set, get) => ({
         userName,
       });
       set({ user: response.data.user, isAuthenticated: true });
+      return response.data;
     } catch (error) {
       throw new Error(error.response.data.message);
     }
@@ -31,6 +32,7 @@ export const useAuthStore = create((set, get) => ({
         password,
       });
       set({ user: response.data.user, isAuthenticated: true });
+      return response.data;
     } catch (error) {
       throw new Error(error.response.data.message);
     }

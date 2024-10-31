@@ -7,9 +7,11 @@ import { HOST } from "@/utils/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FiUserMinus } from "react-icons/fi";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const FriendList = () => {
   const { friends, fetchFriends, removeFriend } = useFriendStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchFriends();
@@ -20,18 +22,13 @@ const FriendList = () => {
       const response = await removeFriend(friendId);
       console.log("Risposta accettata:", response);
       if (response.status === 200) {
-        toast.success("Richiesta di amicizia annullata");
+        toast.success(
+          t("mainpage.friendsDialog.friendsList.friendRemovedSuccess")
+        );
       }
     } catch (error) {
       if (error.response) {
-        console.error("Errore nella risposta del server:", error.response);
-        toast.error(`Errore: ${error.response.data.message}`);
-      } else if (error.request) {
-        console.error("Nessuna risposta ricevuta:", error.request);
-        toast.error("Nessuna risposta dal server.");
-      } else {
-        console.error("Errore nella richiesta:", error.message);
-        toast.error(`Errore nella richiesta: ${error.message}`);
+        toast.error(t("mainpage.friendsDialog.friendsList.friendRemovedError"));
       }
     }
   };
@@ -41,7 +38,7 @@ const FriendList = () => {
       <ScrollArea className="h-[250px]">
         <div className="flex flex-col gap-5">
           {friends.length === 0 ? (
-            <p>Nessun amico.</p>
+            <p>{t("mainpage.friendsDialog.friendsList.noFriends")}.</p>
           ) : (
             friends.map((friend) => (
               <div
@@ -71,7 +68,7 @@ const FriendList = () => {
                 <button
                   onClick={() => handleRemoveFriend(friend._id)}
                   className="text-white hover:text-red-500 transition-colors duration-200 pr-5"
-                  title="Rimuovi amico"
+                  title={t("mainpage.friendsDialog.friendsList.removeFriend")}
                 >
                   <FiUserMinus size={24} />
                 </button>
