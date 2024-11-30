@@ -221,7 +221,7 @@ function MessageContainer() {
 
   const renderGroupMessages = (message) => {
     const currentUserId = user._id.toString();
-    const isCurrentUser = message.sender._id === currentUserId;
+    const isCurrentUser = message.sender?._id === currentUserId;
     const senderName = message.sender.userName || "Unknown User";
 
     return (

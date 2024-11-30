@@ -12,12 +12,14 @@ function GroupPreview({ groups, isChannel }) {
   } = useChatStore();
 
   const handleClick = (group) => {
-    setSelectedChatType("group");
-    setSelectedChatData(group);
-    resetGroupUnreadCount(group._id);
+    console.log("Clicked on group:", group);
 
-    if (selectedChatData && selectedChatData._id !== group._id) {
-      setSelectedChatMessages([]); // Resetta i messaggi se cambia il gruppo
+    setSelectedChatType("group");
+    if (!selectedChatData || selectedChatData._id !== group._id) {
+      setSelectedChatData(group);
+      setSelectedChatMessages([]); // Clear previous messages
+      console.log("Resetting unread group count for:", group._id);
+      resetGroupUnreadCount(group._id); // This should mark the group messages as read
     }
   };
 

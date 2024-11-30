@@ -43,9 +43,14 @@ const userSchema = new Schema(
       default: false,
     },
     unreadMessagesCount: {
-      type: Number,
-      default: 0,
+      type: Object, // Store as a plain object
+      default: {},
     },
+    unreadGroupMessagesCount: {
+      type: Object,
+      default: {},
+    },
+
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
     verificationToken: String,
@@ -53,5 +58,14 @@ const userSchema = new Schema(
   },
   { timestamps: true }
 );
+
+userSchema.pre("save", function (next) {
+  console.log("Saving user document:", this);
+  next();
+});
+
+userSchema.post("save", function (doc) {
+  console.log("Saved user document:", doc);
+});
 
 export const User = mongoose.model("Users", userSchema);

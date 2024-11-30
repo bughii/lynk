@@ -17,15 +17,21 @@ function ChatPreview({ isChannel = false }) {
 
   const { friendsPreview } = useFriendStore();
 
-  const handleClick = async (friend) => {
-    if (isChannel) setSelectedChatType("channel");
-    else setSelectedChatType("friend");
-    setSelectedChatData(friend);
+  const handleClick = (friend) => {
+    console.log("Clicked on chat:", friend);
 
-    if (selectedChatData && selectedChatData._id !== friend._id) {
-      setSelectedChatMessages([]);
+    if (isChannel) {
+      setSelectedChatType("channel");
+    } else {
+      setSelectedChatType("friend");
     }
-    resetUnreadCount(friend._id);
+
+    if (!selectedChatData || selectedChatData._id !== friend._id) {
+      setSelectedChatData(friend);
+      setSelectedChatMessages([]);
+      console.log("Resetting unread count for:", friend._id);
+      resetUnreadCount(friend._id); // This should mark the messages as read
+    }
   };
 
   return (

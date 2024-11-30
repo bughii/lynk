@@ -9,13 +9,12 @@ import {
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { toast } from "sonner";
-import imgLog from "@/assets/thuumbs-up.png";
+import thumbs from "../../assets/thumbsup.png";
 
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { use } from "i18next";
 
 const Authentication = () => {
   const { signup, login } = useAuthStore();
@@ -111,26 +110,30 @@ const Authentication = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <div className="flex flex-col items-center justify-center bg-[#1b1c24] text-white p-12">
             <h1>
-              {t("auth.welcomeMessage")}
+              {t("auth.signup")}
               <span className="text-green-500">!</span>
             </h1>
             <p>
               {t("auth.enterCredentials")}
               <span className="text-green-500">.</span>
             </p>
-            <img src={imgLog} alt="Login" className="w-32 h-32 mt-10" />
+            <img src={thumbs} alt="Login" className="w-32 h-32 mt-10" />
           </div>
           <div className="flex flex-col items-center justify-center p-12 bg-[#2c2e3b]">
             <Tabs className="w-full" defaultValue="login">
               <TabsList className="flex w-full bg-[#2c2e3b] rounded-xl mb-6 shadow-sm">
                 <TabsTrigger
+                  role="tab"
                   value="login"
+                  aria-label="Login tab"
                   className="data-[state=active]:bg-transparent text-white text-opacity-90 border-b-2 rounded-none w-full data-[state=active]:text-white data-[state=active]:border-b-blue-400 p-3 transition-all duration-300"
                 >
                   {t("auth.login")}
                 </TabsTrigger>
                 <TabsTrigger
+                  role="tab"
                   value="signup"
+                  aria-label="Signup tab"
                   className="data-[state=active]:bg-transparent text-white text-opacity-90 border-b-2 rounded-none w-full data-[state=active]:text-white data-[state=active]:border-b-blue-400 p-3 transition-all duration-300"
                 >
                   {t("auth.signup")}

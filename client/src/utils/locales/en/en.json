@@ -33,7 +33,7 @@
   "forgotPassword": {
     "title": "Reset Password",
     "text": "Enter your email and we will send you a link to reset your password",
-    "resetText": "If an account exists with the email <strong>{{email}}</strong>, you will receive an email with a reset link.",
+    "resetText": "If an account exists with this email, you will receive a reset link.",
     "sendLink": "Send Link",
     "enterEmailPlaceholder": "Enter your email"
   },
@@ -46,6 +46,13 @@
     "passwordResetSuccess": "Password reset successfully",
     "resetSuccessText": "Your password has been reset successfully. You can now login with your new password.",
     "passwordResetError": "Error resetting password"
+  },
+  "emailVerification": {
+    "title": "Verify your email",
+    "description": "Insert the 6 digit code sent to your email",
+    "button": "Verify Email",
+    "verifySuccess": "Email verified successfully",
+    "verifyError": "The code is incorrect or has expired"
   },
   "mainpage": {
     "welcomeMessageEmptyScreen": "Hello",

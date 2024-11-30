@@ -47,6 +47,13 @@
     "resetSuccessText": "La tua password è stata reimpostata con successo. Ora puoi accedere con la tua nuova password.",
     "passwordResetError": "Errore durante il reset della password"
   },
+  "emailVerification": {
+    "title": "Verifica la tua email",
+    "description": "Inserisci il codice di 6 cifre inviato alla tua email",
+    "button": "Verifica Email",
+    "verifySuccess": "Email verificata con successo",
+    "verifyError": "Il codice è incorretto o è scaduto"
+  },
   "mainpage": {
     "welcomeMessageEmptyScreen": "Ciao",
     "welcomeMessageEmptyScreen1": "Benvenuto su",

@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const EmailVerificationPage = () => {
   // Six empty strings represent the six input fields
@@ -10,6 +12,7 @@ const EmailVerificationPage = () => {
   // Reference to each input field
   const inputRefs = useRef([]);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const { verifyEmail } = useAuthStore();
 
@@ -53,11 +56,11 @@ const EmailVerificationPage = () => {
       const response = await verifyEmail(verificationCode);
       if (response.success) {
         navigate("/profile");
-        toast.success("Email verified successfully");
+        toast.success(t("emailVerification.verifySuccess"));
       }
     } catch (error) {
       console.log(error);
-      toast.error("Codice di verifica non valido");
+      toast.error(t("emailVerification.verifyError"));
     }
   };
 
@@ -74,10 +77,10 @@ const EmailVerificationPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2">
           <div className="flex flex-col items-center justify-center bg-[#1b1c24] text-white p-12">
             <h1 className="text-3xl font-bold mb-6 text-center text-white">
-              Verifica la tua Email
+              {t("emailVerification.title")}
             </h1>
             <p className="text-center text-gray-300 mb-6">
-              Inserisci il codice a 6 cifre che ti è stato inviato via email.
+              {t("emailVerification.description")}
             </p>
           </div>
           <div className="flex flex-col items-center justify-center p-12 bg-[#2c2e3b]">
@@ -101,7 +104,7 @@ const EmailVerificationPage = () => {
                 disabled={code.some((digit) => !digit)}
                 className="w-full bg-[#4b5563] text-white font-bold py-3 px-4 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 disabled:opacity-50"
               >
-                Verifica
+                {t("emailVerification.button")}
               </button>
             </form>
           </div>

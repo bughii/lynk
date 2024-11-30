@@ -7,9 +7,9 @@ import Authentication from "./pages/authentication";
 import EmailVerificationPage from "./pages/email-verification";
 import ForgotPasswordPage from "./pages/forgot-password";
 import ResetPasswordPage from "./pages/reset-password";
-import { usePageTitle } from "./components/dynamic-title";
 import Settings from "./pages/chat/contacts-list/components/profile-settings";
 import LanguageProvider from "./context/LanguageProvider";
+import { useChatStore } from "./store/chatStore";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -36,13 +36,21 @@ const RedirectAuthenticatedUser = ({ children }) => {
 };
 
 const App = () => {
-  usePageTitle();
   // Recupero lo stato con zustand
-  const { isCheckingAuth, checkAuth } = useAuthStore();
+  const { isCheckingAuth, checkAuth, user, isAuthenticated } = useAuthStore();
+  const initializeSocket = useChatStore((state) => state.initializeSocket);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    // Initialize the socket only if the user is authenticated and their ID is available
+    if (isAuthenticated && user && user._id) {
+      console.log("Initializing socket for user:", user._id);
+      initializeSocket(user._id);
+    }
+  }, [isAuthenticated, user, initializeSocket]);
 
   if (isCheckingAuth) {
     return <div>Loading...</div>;

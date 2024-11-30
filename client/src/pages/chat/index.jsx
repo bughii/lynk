@@ -11,7 +11,6 @@ import { useChatStore } from "@/store/chatStore";
 const Chat = () => {
   const { user } = useAuthStore();
   const { selectedChatType } = useChatStore();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
