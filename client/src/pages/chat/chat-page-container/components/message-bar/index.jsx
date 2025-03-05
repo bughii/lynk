@@ -9,6 +9,8 @@ import { IoSend } from "react-icons/io5";
 import { RiEmojiStickerLine } from "react-icons/ri";
 import { apiClient } from "@/lib/api-client.js";
 import { SEND_FILE_ROUTE } from "@/utils/constants.js";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 function MessageBar() {
   const [message, setMessage] = useState("");
@@ -18,6 +20,7 @@ function MessageBar() {
   const emojiRef = useRef();
   const socket = useSocket();
   const fileInputRef = useRef();
+  const { t } = useTranslation();
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -32,14 +35,41 @@ function MessageBar() {
   }, [emojiRef]);
 
   const handleSendMessage = async () => {
-    console.log("Socket: ", socket);
-    console.log("Selected chat type: ", selectedChatType);
-    console.log("Selected chat data: ", selectedChatData);
+    console.log("Send message attempt for:", {
+      type: selectedChatType,
+      groupData: selectedChatType === "group" ? selectedChatData : null,
+    });
 
     // Controllo se il messaggio è vuoto
     if (!message.trim()) {
       console.error("Il messaggio è vuoto");
       return;
+    }
+
+    // Controllo più rigoroso per gruppi
+    if (selectedChatType === "group" && selectedChatData) {
+      // Controllo se l'utente non è più nel gruppo
+      if (
+        selectedChatData.isActive === false ||
+        selectedChatData.userRemoved === true ||
+        selectedChatData.userLeft === true
+      ) {
+        console.log("Cannot send message, group status:", {
+          isActive: selectedChatData.isActive,
+          userRemoved: selectedChatData.userRemoved,
+          userLeft: selectedChatData.userLeft,
+        });
+
+        // Messaggi specifici in base allo stato
+        if (selectedChatData.userRemoved) {
+          toast.error(t("chat.cannotSendMessageRemovedFromGroup"));
+        } else if (selectedChatData.userLeft) {
+          toast.error(t("chat.cannotSendMessageLeftGroup"));
+        } else {
+          toast.error(t("chat.cannotSendMessageInactiveGroup"));
+        }
+        return;
+      }
     }
 
     if (selectedChatType === "friend" && socket) {
@@ -150,11 +180,22 @@ function MessageBar() {
         </div>
       </div>
       <button
-        className="bg-[#2c4e97] rounded-md flex items-center justify-center p-5
-             focus:border-none focus:outline-none focus:text-white
-             transition-transform duration-300 ease-in-out transform hover:bg-[#365fbc]
-             hover:scale-105 active:scale-95"
+        className={`bg-[#2c4e97] rounded-md flex items-center justify-center p-5
+          focus:border-none focus:outline-none focus:text-white
+          transition-transform duration-300 ease-in-out transform hover:bg-[#365fbc]
+          hover:scale-105 active:scale-95 ${
+            selectedChatType === "group" &&
+            selectedChatData &&
+            selectedChatData.isActive === false
+              ? "opacity-50 cursor-not-allowed"
+              : ""
+          }`}
         onClick={handleSendMessage}
+        disabled={
+          selectedChatType === "group" &&
+          selectedChatData &&
+          selectedChatData.isActive === false
+        }
       >
         <IoSend className="text-2xl" />
       </button>

@@ -26,12 +26,13 @@ function GroupPreview({ groups, isChannel }) {
   return (
     <ScrollArea className="h-[calc(30vh-40px)] overflow-y-auto">
       <div className="mt-5">
-        {groups.map((group) => {
+        {groups.map((group, index) => {
           const unreadCount = unreadGroupMessagesCount[group._id] || 0;
 
           return (
             <div
-              key={group._id}
+              // Utilizza una combinazione di _id e timestamp per garantire unicità
+              key={`${group._id}-${index}`}
               className={`pl-5 py-2 transition-all duration-300 cursor-pointer ${
                 selectedChatData && selectedChatData._id === group._id
                   ? "bg-[#126319] hover:bg-[#126319]"

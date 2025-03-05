@@ -78,6 +78,14 @@ function MessageContainer() {
     }
   }, [selectedChatMessages, selectedChatData]);
 
+  const renderSystemMessage = (message) => (
+    <div className="text-center my-4">
+      <div className="inline-block bg-red-500/20 text-red-400 px-4 py-2 rounded-md text-sm">
+        {message.content}
+      </div>
+    </div>
+  );
+
   const renderMessages = () => {
     let lastDate = null;
 
@@ -94,8 +102,11 @@ function MessageContainer() {
               {moment(message.timestamp).format("LL")}
             </div>
           )}
-          {selectedChatType === "friend" && renderDMMessages(message)}
-          {selectedChatType === "group" && renderGroupMessages(message)}
+          {message.isSystem
+            ? renderSystemMessage(message)
+            : selectedChatType === "friend"
+            ? renderDMMessages(message)
+            : renderGroupMessages(message)}
         </div>
       );
     });

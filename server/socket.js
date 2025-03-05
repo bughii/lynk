@@ -87,6 +87,54 @@ const setupSocket = (server) => {
       // Message details
       const { groupId, sender, content, messageType, fileURL } = message;
 
+      // Prima controlla se l'utente è membro del gruppo o è stato rimosso
+      const group = await Group.findById(groupId);
+
+      if (!group) {
+        console.log(`Group ${groupId} not found`);
+        const senderSocketId = userSocketMap.get(sender);
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("messageRejected", {
+            groupId,
+            reason: "Group not found",
+          });
+        }
+        return;
+      }
+
+      // Verifica se l'utente è ancora membro del gruppo
+      const isMember =
+        group.members.some(
+          (member) => member.toString() === sender.toString()
+        ) || group.admin.toString() === sender.toString();
+
+      // Ottieni informazioni sull'utente per verificare se è stato rimosso dal gruppo
+      const user = await User.findById(sender);
+      const isRemovedFromGroup =
+        user.removedGroups &&
+        user.removedGroups.some(
+          (item) =>
+            item.groupId && item.groupId.toString() === groupId.toString()
+        );
+
+      // Se l'utente non è membro del gruppo o è stato rimosso, non inviare il messaggio
+      if (!isMember || isRemovedFromGroup) {
+        console.log(
+          `Blocked message from ${sender} to group ${groupId}: User not in group or removed`
+        );
+        // Invia una notifica all'utente che non può inviare messaggi
+        const senderSocketId = userSocketMap.get(sender);
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("messageRejected", {
+            groupId,
+            reason: "User not in group or removed",
+          });
+        }
+        return;
+      }
+
+      // Se l'utente è un membro valido, procedi con la creazione e l'invio del messaggio
+
       // Create the message in the database
       const createdMessage = await Message.create({
         sender,
@@ -103,26 +151,71 @@ const setupSocket = (server) => {
         .exec();
 
       // Update the group with the new message
-      const group = await Group.findByIdAndUpdate(
+      const updatedGroup = await Group.findByIdAndUpdate(
         groupId,
         { $push: { messages: messageData._id } },
         { new: true }
       ).populate("members admin");
 
-      const finalData = { ...messageData._doc, groupId: group._id };
+      const finalData = { ...messageData._doc, groupId: updatedGroup._id };
 
-      // Emit the message to all group members
-      group.members.forEach((member) => {
+      // Track which members are online vs offline
+      const onlineMembers = new Set();
+      const offlineMembers = [];
+
+      // Crea un set di tutti gli ID membri per verificare se l'admin è già nei membri
+      const memberIds = new Set(
+        updatedGroup.members.map((m) => m._id.toString())
+      );
+
+      // Emit the message to all online group members
+      updatedGroup.members.forEach((member) => {
         const memberSocketId = userSocketMap.get(member._id.toString());
         if (memberSocketId) {
+          onlineMembers.add(member._id.toString());
           io.to(memberSocketId).emit("receiveGroupMessage", finalData);
+        } else {
+          // Member is offline, add to offline members list
+          offlineMembers.push(member._id.toString());
         }
       });
 
-      // Send to the group admin, as it's not included in the members list
-      const adminSocketId = userSocketMap.get(group.admin._id.toString());
-      if (adminSocketId) {
-        io.to(adminSocketId).emit("receiveGroupMessage", finalData);
+      // Handle admin specially ONLY if not already included in members
+      const adminId = updatedGroup.admin._id.toString();
+      if (!memberIds.has(adminId)) {
+        const adminSocketId = userSocketMap.get(adminId);
+        if (adminSocketId) {
+          onlineMembers.add(adminId);
+          io.to(adminSocketId).emit("receiveGroupMessage", finalData);
+        } else if (!onlineMembers.has(adminId)) {
+          offlineMembers.push(adminId);
+        }
+      }
+
+      // Increment unread count for offline members, but don't increment for the sender
+      for (const memberId of offlineMembers) {
+        // Skip incrementing for the sender of the message
+        if (memberId === sender.toString()) continue;
+
+        const user = await User.findById(memberId);
+        if (user) {
+          // Create a copy of the current unread group messages count
+          const currentGroupCounts = { ...user.unreadGroupMessagesCount } || {};
+
+          // Increment the count for this group
+          currentGroupCounts[groupId] = (currentGroupCounts[groupId] || 0) + 1;
+
+          // Update the user document with the new count
+          await User.findByIdAndUpdate(
+            memberId,
+            { unreadGroupMessagesCount: currentGroupCounts },
+            { new: true }
+          );
+
+          console.log(
+            `Incremented unread count for group ${groupId} for offline member ${memberId}`
+          );
+        }
       }
     } catch (error) {
       console.error("Error in sendGroupMessage:", error);
@@ -314,6 +407,195 @@ const setupSocket = (server) => {
             }
           } catch (error) {
             console.error("Error resetting group unread count:", error);
+          }
+        });
+
+        socket.on("memberRemoved", async (data) => {
+          const { groupId, memberId, adminId } = data;
+
+          try {
+            // Recupera i dettagli del gruppo
+            const group = await Group.findById(groupId)
+              .populate("members", "userName avatar image isOnline")
+              .populate("admin", "userName avatar image isOnline");
+
+            if (!group) return;
+
+            // Aggiornare l'utente rimosso, aggiungendo il gruppo ai suoi removedGroups
+            await User.findByIdAndUpdate(memberId, {
+              $push: { removedGroups: { groupId } },
+            });
+
+            // Notifica all'utente rimosso
+            const removedMemberSocketId = userSocketMap.get(memberId);
+            if (removedMemberSocketId) {
+              // Invia il gruppo con isActive: false
+              const inactiveGroup = {
+                ...group.toObject(),
+                isActive: false,
+                userRemoved: true,
+              };
+
+              io.to(removedMemberSocketId).emit("removedFromGroup", {
+                groupId,
+                group: inactiveGroup,
+                groupName: group.name,
+                removedBy: adminId,
+              });
+            }
+
+            // Notifiche per gli altri membri...
+          } catch (error) {
+            console.error("Error in memberRemoved event:", error);
+          }
+        });
+
+        socket.on("leftGroup", async (data) => {
+          const { groupId, userId, wasAdmin, newAdminId } = data;
+
+          try {
+            await User.updateOne(
+              { _id: userId },
+              { $pull: { removedGroups: { groupId } } }
+            );
+
+            // Quando un utente esce, aggiungi il gruppo alla sua lista dei gruppi rimossi
+            await User.findByIdAndUpdate(userId, {
+              $push: { removedGroups: { groupId, left: true } },
+            });
+
+            // Recupera informazioni aggiornate sul gruppo
+            const group = await Group.findById(groupId)
+              .populate("members", "userName avatar image isOnline")
+              .populate("admin", "userName avatar image isOnline");
+
+            if (!group) return;
+
+            // Notifica all'utente che è uscito (con un flag che indica l'uscita volontaria)
+            const userSocketId = userSocketMap.get(userId);
+            if (userSocketId) {
+              const inactiveGroup = {
+                ...group.toObject(),
+                isActive: false,
+                userRemoved: false,
+                userLeft: true,
+              };
+
+              io.to(userSocketId).emit("leftGroup", {
+                groupId,
+                group: inactiveGroup,
+                groupName: group.name,
+                wasAdmin,
+                newAdminId,
+              });
+            }
+
+            // Notifica agli altri membri del gruppo
+            const memberSocketIds = group.members
+              .map((member) => member._id.toString())
+              .filter((id) => id !== userId)
+              .map((id) => userSocketMap.get(id))
+              .filter((id) => id); // Filtra valori null/undefined
+
+            // Aggiungi l'admin se non è già incluso
+            if (
+              group.admin &&
+              group.admin._id.toString() !== userId &&
+              !memberSocketIds.includes(
+                userSocketMap.get(group.admin._id.toString())
+              )
+            ) {
+              const adminSocketId = userSocketMap.get(
+                group.admin._id.toString()
+              );
+              if (adminSocketId) memberSocketIds.push(adminSocketId);
+            }
+
+            // Invia notifica a tutti i membri
+            for (const socketId of memberSocketIds) {
+              io.to(socketId).emit("userLeftGroup", {
+                groupId,
+                userId,
+                wasAdmin,
+                newAdminId,
+                groupName: group.name,
+              });
+            }
+          } catch (error) {
+            console.error("Error in leftGroup event:", error);
+          }
+        });
+
+        socket.on("groupDeleted", async (groupId) => {
+          // Trova tutti i membri del gruppo
+          const group = await Group.findById(groupId).populate("members admin");
+          if (group) {
+            [...group.members, group.admin].forEach((member) => {
+              const memberSocket = userSocketMap.get(member._id.toString());
+              if (memberSocket) {
+                io.to(memberSocket).emit("groupDeleted", { groupId });
+              }
+            });
+          }
+        });
+
+        socket.on("groupAdminChanged", async (data) => {
+          const { groupId, newAdminId } = data;
+
+          // Notifica a tutti i membri del gruppo
+          const group = await Group.findById(groupId).populate("members admin");
+          if (group) {
+            [...group.members, group.admin].forEach((member) => {
+              const memberSocket = userSocketMap.get(member._id.toString());
+              if (memberSocket) {
+                io.to(memberSocket).emit("groupUpdated", {
+                  groupId,
+                  action: "adminChanged",
+                  newAdminId,
+                });
+              }
+            });
+          }
+        });
+
+        socket.on("membersAdded", async (data) => {
+          const { groupId, memberIds } = data;
+
+          try {
+            for (const memberId of memberIds) {
+              await User.updateOne(
+                { _id: memberId },
+                { $pull: { removedGroups: { groupId } } }
+              );
+            }
+
+            // Recupera i dettagli completi del gruppo
+            const group = await Group.findById(groupId)
+              .populate("members", "userName avatar image isOnline")
+              .populate("admin", "userName avatar image isOnline");
+
+            if (!group) return;
+
+            console.log(`Sending addedToGroup event to members: ${memberIds}`);
+
+            // Notifica a ciascun nuovo membro che è stato aggiunto al gruppo
+            for (const memberId of memberIds) {
+              const memberSocketId = userSocketMap.get(memberId);
+              if (memberSocketId) {
+                // Assicurati che isActive sia true
+                const activeGroup = {
+                  ...group.toObject(),
+                  isActive: true,
+                  userRemoved: false,
+                };
+
+                io.to(memberSocketId).emit("addedToGroup", {
+                  group: activeGroup,
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Error in membersAdded event:", error);
           }
         });
 

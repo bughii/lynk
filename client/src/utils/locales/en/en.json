@@ -177,5 +177,68 @@
         "li4": "Do not share your password with anyone"
       }
     }
+  },
+  "groupInfo": {
+    "groupInformation": "Group Information",
+    "members": "Members",
+    "admin": "Admin",
+    "removeMember": "Remove Member",
+    "addFriend": "Add Friend",
+    "leaveGroup": "Leave Group",
+    "deleteGroup": "Delete Group",
+    "selectNewAdmin": "Select New Admin",
+    "selectNewAdminDescription": "Before leaving the group, you must select a new admin.",
+    "memberRemoved": "Member removed successfully",
+    "leftGroup": "You have left the group",
+    "deletedGroup": "Group deleted successfully",
+    "actionError": "Error performing the action",
+    "adminChangedAndLeft": "Admin changed and you left the group",
+    "adminChangeError": "Error changing admin",
+    "removeMemberTitle": "Remove Member",
+    "removeMemberDescription": "Are you sure you want to remove {name} from the group?",
+    "leaveGroupTitle": "Leave Group",
+    "leaveGroupDescription": "Are you sure you want to leave this group?",
+    "deleteGroupTitle": "Delete Group",
+    "deleteGroupDescription": "Are you sure you want to delete this group? This action cannot be undone.",
+    "remove": "Remove",
+    "leave": "Leave",
+    "delete": "Delete",
+    "you": "You",
+    "youAreAdmin": "You are admin",
+    "loadError": "Error loading group details",
+    "friendRequestSent": "Friend request sent",
+    "addMembers": "Add Members",
+    "searchFriends": "Search friends",
+    "availableFriends": "available friends",
+    "selected": "selected",
+    "noAvailableFriends": "No friends available to add",
+    "addSelected": "Add Selected",
+    "membersAdded": "Members added successfully",
+    "addMembersError": "Error adding members"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "loading": "Loading",
+    "confirm": "Confirm",
+    "confirmAction": "Confirm Action",
+    "confirmActionDescription": "Are you sure you want to proceed with this action?"
+  },
+  "notifications": {
+    "addedToGroup": "You have been added to group: {groupName}",
+    "membersAddedToGroup": "New members have been added to group: {groupName}",
+    "removedFromGroup": "You have been removed from group: {groupName}",
+    "youWereRemovedFromGroup": "You have been removed from this group",
+    "youLeftGroup": "You left group: {groupName}",
+    "youLeftGroupAsAdmin": "You left this group and transferred admin privileges",
+    "userLeftGroup": "{userName} left the group",
+    "userLeftGroupAndYouAreNewAdmin": "{userName} left the group and you are now the admin"
+  },
+  "chat": {
+    "removedFromGroup": "You have been removed from this group and cannot send messages",
+    "leftGroup": "You left this group and cannot send messages",
+    "cannotSendMessageRemovedFromGroup": "Cannot send message: you are no longer a member of this group",
+    "cannotSendMessageLeftGroup": "Cannot send message: you left this group",
+    "cannotSendMessageInactiveGroup": "Cannot send message: this group is inactive",
+    "messageRejected": "Message rejected: you are no longer a member of this group"
   }
 }

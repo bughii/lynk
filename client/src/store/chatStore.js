@@ -235,9 +235,13 @@ export const useChatStore = create(
         try {
           const response = await axios.get(`${API_URL}/get-user-groups`);
           if (response.data.groups) {
-            console.log(response.data.groups);
+            // Aggiungi isActive: true a tutti i gruppi caricati
+            const groupsWithActive = response.data.groups.map((group) => ({
+              ...group,
+              isActive: true,
+            }));
+            set({ groups: groupsWithActive });
           }
-          set({ groups: response.data.groups });
           return response;
         } catch (error) {
           console.error("Error fetching user groups:", error);
@@ -285,6 +289,90 @@ export const useChatStore = create(
           groups.unshift(data);
         }
       },
+
+      removeGroup: (groupId) =>
+        set((state) => ({
+          groups: state.groups.filter((group) => group._id !== groupId),
+          // Se la chat selezionata è quella rimossa, chiudi la chat
+          selectedChatType:
+            state.selectedChatType === "group" &&
+            state.selectedChatData?._id === groupId
+              ? undefined
+              : state.selectedChatType,
+          selectedChatData:
+            state.selectedChatType === "group" &&
+            state.selectedChatData?._id === groupId
+              ? undefined
+              : state.selectedChatData,
+          selectedChatMessages:
+            state.selectedChatType === "group" &&
+            state.selectedChatData?._id === groupId
+              ? []
+              : state.selectedChatMessages,
+        })),
+
+      markGroupAsInactive: (groupId) =>
+        set((state) => {
+          const groupIndex = state.groups.findIndex(
+            (group) => group._id === groupId
+          );
+          if (groupIndex === -1) return state;
+
+          const updatedGroups = [...state.groups];
+          updatedGroups[groupIndex] = {
+            ...updatedGroups[groupIndex],
+            isActive: false,
+          };
+
+          // Se la chat selezionata è quella disattivata, aggiorna anche selectedChatData
+          const updatedSelectedChatData =
+            state.selectedChatType === "group" &&
+            state.selectedChatData?._id === groupId
+              ? { ...state.selectedChatData, isActive: false }
+              : state.selectedChatData;
+
+          return {
+            groups: updatedGroups,
+            selectedChatData: updatedSelectedChatData,
+          };
+        }),
+
+      addSystemMessage: (message) =>
+        set((state) => ({
+          selectedChatMessages: [
+            ...state.selectedChatMessages,
+            {
+              ...message,
+              isSystem: true,
+            },
+          ],
+        })),
+
+      updateGroup: (groupId, updates) =>
+        set((state) => {
+          const groupIndex = state.groups.findIndex(
+            (group) => group._id === groupId
+          );
+          if (groupIndex === -1) return state;
+
+          const updatedGroups = [...state.groups];
+          updatedGroups[groupIndex] = {
+            ...updatedGroups[groupIndex],
+            ...updates,
+          };
+
+          // Se la chat selezionata è quella aggiornata, aggiorna anche selectedChatData
+          const updatedSelectedChatData =
+            state.selectedChatType === "group" &&
+            state.selectedChatData?._id === groupId
+              ? { ...state.selectedChatData, ...updates }
+              : state.selectedChatData;
+
+          return {
+            groups: updatedGroups,
+            selectedChatData: updatedSelectedChatData,
+          };
+        }),
     }),
     {
       name: "chat-storage",

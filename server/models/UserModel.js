@@ -43,13 +43,29 @@ const userSchema = new Schema(
       default: false,
     },
     unreadMessagesCount: {
-      type: Object, // Store as a plain object
+      type: Object,
       default: {},
     },
     unreadGroupMessagesCount: {
       type: Object,
       default: {},
     },
+    removedGroups: [
+      {
+        groupId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Groups",
+        },
+        left: {
+          type: Boolean,
+          default: false,
+        },
+        removedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
 
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,

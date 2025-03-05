@@ -103,12 +103,21 @@ export const useFriendStore = create((set) => ({
   fetchReceivedRequests: async () => {
     try {
       const response = await axios.get(`${API_URL}/received-requests`);
-      set({ receivedRequests: response.data.receivedRequests, error: null }); // Update the state with the received requests
+      set({
+        receivedRequests: response.data.receivedRequests || [],
+        error: null,
+      });
     } catch (error) {
-      const errorMessage = error.response
-        ? error.response.data.message
-        : "Errore sconosciuto.";
-      set({ error: errorMessage });
+      console.error("Error fetching received requests:", error);
+      // Se l'errore è 404, imposta un array vuoto invece di segnalare un errore
+      if (error.response && error.response.status === 404) {
+        set({ receivedRequests: [], error: null });
+      } else {
+        const errorMessage = error.response
+          ? error.response.data.message
+          : "Errore sconosciuto.";
+        set({ error: errorMessage });
+      }
     }
   },
 

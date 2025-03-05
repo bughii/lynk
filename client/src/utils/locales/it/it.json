@@ -178,5 +178,68 @@
         "li4": "Non condividere la tua password con nessuno"
       }
     }
+  },
+  "groupInfo": {
+    "groupInformation": "Informazioni Gruppo",
+    "members": "Membri",
+    "admin": "Amministratore",
+    "removeMember": "Rimuovi Membro",
+    "addFriend": "Aggiungi Amico",
+    "leaveGroup": "Esci dal Gruppo",
+    "deleteGroup": "Elimina Gruppo",
+    "selectNewAdmin": "Seleziona Nuovo Admin",
+    "selectNewAdminDescription": "Prima di uscire dal gruppo, devi selezionare un nuovo amministratore.",
+    "memberRemoved": "Membro rimosso con successo",
+    "leftGroup": "Sei uscito dal gruppo",
+    "deletedGroup": "Gruppo eliminato con successo",
+    "actionError": "Errore durante l'esecuzione dell'azione",
+    "adminChangedAndLeft": "Amministratore cambiato e sei uscito dal gruppo",
+    "adminChangeError": "Errore durante il cambio dell'amministratore",
+    "removeMemberTitle": "Rimuovi Membro",
+    "removeMemberDescription": "Sei sicuro di voler rimuovere {name} dal gruppo?",
+    "leaveGroupTitle": "Esci dal Gruppo",
+    "leaveGroupDescription": "Sei sicuro di voler uscire da questo gruppo?",
+    "deleteGroupTitle": "Elimina Gruppo",
+    "deleteGroupDescription": "Sei sicuro di voler eliminare questo gruppo? Questa azione non può essere annullata.",
+    "remove": "Rimuovi",
+    "leave": "Esci",
+    "delete": "Elimina",
+    "you": "Tu",
+    "youAreAdmin": "Sei amministratore",
+    "loadError": "Errore nel caricamento dei dettagli del gruppo",
+    "friendRequestSent": "Richiesta di amicizia inviata",
+    "addMembers": "Aggiungi Membri",
+    "searchFriends": "Cerca amici",
+    "availableFriends": "amici disponibili",
+    "selected": "selezionati",
+    "noAvailableFriends": "Nessun amico disponibile da aggiungere",
+    "addSelected": "Aggiungi Selezionati",
+    "membersAdded": "Membri aggiunti con successo",
+    "addMembersError": "Errore durante l'aggiunta dei membri"
+  },
+  "common": {
+    "cancel": "Annulla",
+    "loading": "Caricamento",
+    "confirm": "Conferma",
+    "confirmAction": "Conferma Azione",
+    "confirmActionDescription": "Sei sicuro di voler procedere con questa azione?"
+  },
+  "notifications": {
+    "addedToGroup": "Sei stato aggiunto al gruppo: {groupName}",
+    "membersAddedToGroup": "Nuovi membri sono stati aggiunti al gruppo: {groupName}",
+    "removedFromGroup": "Sei stato rimosso dal gruppo: {groupName}",
+    "youWereRemovedFromGroup": "Sei stato rimosso da questo gruppo",
+    "youLeftGroup": "Hai lasciato il gruppo: {groupName}",
+    "youLeftGroupAsAdmin": "Hai lasciato questo gruppo e trasferito i privilegi di amministratore",
+    "userLeftGroup": "{userName} ha lasciato il gruppo",
+    "userLeftGroupAndYouAreNewAdmin": "{userName} ha lasciato il gruppo e ora sei l'amministratore"
+  },
+  "chat": {
+    "removedFromGroup": "Sei stato rimosso da questo gruppo e non puoi inviare messaggi",
+    "leftGroup": "Hai lasciato questo gruppo e non puoi inviare messaggi",
+    "cannotSendMessageRemovedFromGroup": "Impossibile inviare il messaggio: non sei più un membro di questo gruppo",
+    "cannotSendMessageLeftGroup": "Impossibile inviare il messaggio: hai lasciato questo gruppo",
+    "cannotSendMessageInactiveGroup": "Impossibile inviare il messaggio: questo gruppo è inattivo",
+    "messageRejected": "Messaggio rifiutato: non sei più un membro di questo gruppo"
   }
 }

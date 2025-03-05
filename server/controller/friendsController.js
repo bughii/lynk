@@ -41,7 +41,6 @@ export const sendFriendRequest = async (req, res) => {
   }
 };
 
-// Get the list of received friend requests
 export const getReceivedRequests = async (req, res) => {
   try {
     const userId = req.userId;
@@ -53,11 +52,8 @@ export const getReceivedRequests = async (req, res) => {
       status: "pending",
     }).populate("requester", "userName avatar image");
 
-    if (!receivedRequests.length) {
-      return res.status(404).json({ message: "Nessuna richiesta trovata." });
-    }
-
-    res.status(200).json({ receivedRequests });
+    // Restituire un array vuoto invece di un errore se non ci sono richieste
+    res.status(200).json({ receivedRequests: receivedRequests || [] });
   } catch (error) {
     console.log("Errore nel recupero delle richieste.", error);
     res
@@ -155,6 +151,8 @@ export const getFriends = async (req, res) => {
   try {
     const userId = req.userId;
 
+    console.log("Fetching friends for user:", userId);
+
     // Find all accepted friendships where the current user is the requester or recipient
     const friends = await Friendship.find({
       $or: [
@@ -163,35 +161,67 @@ export const getFriends = async (req, res) => {
       ],
     }).populate("requester recipient", "userName avatar image");
 
+    console.log("Found friendships:", friends.length);
+
     // Format the result to return only the friend (not the current user)
-    const formattedFriends = friends.map((friendship) => {
-      if (friendship.requester._id.toString() === userId) {
-        return {
-          _id: friendship.recipient._id,
-          userName: friendship.recipient.userName,
-          avatar: friendship.recipient.avatar,
-          image: friendship.recipient.image,
-        };
-      } else {
-        return {
-          _id: friendship.requester._id,
-          userName: friendship.requester.userName,
-          avatar: friendship.requester.avatar,
-          image: friendship.requester.image,
-        };
+    const formattedFriends = [];
+
+    for (const friendship of friends) {
+      try {
+        // Verifico se requester esiste e ha un _id
+        if (friendship.requester && friendship.requester._id) {
+          const requesterId = friendship.requester._id.toString();
+
+          // Se requester è l'utente corrente, restituisco recipient
+          if (requesterId === userId) {
+            if (friendship.recipient && friendship.recipient._id) {
+              formattedFriends.push({
+                _id: friendship.recipient._id,
+                userName: friendship.recipient.userName || "Unknown User",
+                avatar: friendship.recipient.avatar,
+                image: friendship.recipient.image,
+              });
+            }
+          }
+          // Altrimenti, restituisco requester
+          else {
+            formattedFriends.push({
+              _id: friendship.requester._id,
+              userName: friendship.requester.userName || "Unknown User",
+              avatar: friendship.requester.avatar,
+              image: friendship.requester.image,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error processing friendship:", err);
+        // Continua con la prossima amicizia anche se questa causa errori
       }
-    });
+    }
 
-    // Remove duplicates from the list
-    const uniqueFriends = Array.from(
-      new Map(formattedFriends.map((friend) => [friend._id, friend])).values()
-    );
+    console.log("Formatted friends:", formattedFriends.length);
 
-    res.status(200).json({ friends: uniqueFriends });
+    // Remove duplicates by ID to be safe
+    const uniqueIds = new Set();
+    const uniqueFriends = [];
+
+    for (const friend of formattedFriends) {
+      const friendId = friend._id.toString();
+      if (!uniqueIds.has(friendId)) {
+        uniqueIds.add(friendId);
+        uniqueFriends.push(friend);
+      }
+    }
+
+    console.log("Unique friends:", uniqueFriends.length);
+
+    return res.status(200).json({ friends: uniqueFriends });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Errore nel recupero degli amici.", error });
+    console.error("Error in getFriends:", error);
+    return res.status(500).json({
+      message: "Errore nel recupero degli amici.",
+      error: error.message,
+    });
   }
 };
 
