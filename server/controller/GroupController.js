@@ -1,5 +1,6 @@
 import { User } from "../models/UserModel.js";
 import { Group } from "../models/GroupModel.js";
+import { Message } from "../models/MessagesModel.js";
 import mongoose from "mongoose";
 
 export const createGroup = async (req, res) => {
@@ -410,3 +411,70 @@ export const addMembers = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const getGroupMedia = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.userId;
+
+    // Verifica che il gruppo esista
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    // Verifica che l'utente sia membro o admin del gruppo
+    const isMember = group.members.some(
+      (member) => member.toString() === userId
+    );
+    const isAdmin = group.admin.toString() === userId;
+
+    if (!isMember && !isAdmin) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to view this group's media" });
+    }
+
+    // Recupera tutti i messaggi con file del gruppo
+    const fileMessages = await Message.find({
+      _id: { $in: group.messages },
+      messageType: "file",
+    })
+      .populate("sender", "userName avatar image")
+      .sort({ timestamp: -1 });
+
+    // Formatta i risultati per la risposta
+    const files = fileMessages.map((message) => ({
+      _id: message._id,
+      fileURL: message.fileURL,
+      fileName: message.fileURL.split("/").pop(),
+      fileType: getFileType(message.fileURL),
+      sender: message.sender,
+      timestamp: message.timestamp,
+    }));
+
+    return res.status(200).json({ files });
+  } catch (error) {
+    console.error("Error fetching group media:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Funzione di supporto per determinare il tipo di file
+function getFileType(fileURL) {
+  const extension = fileURL.split(".").pop().toLowerCase();
+
+  if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(extension)) {
+    return "image/" + extension;
+  } else if (["mp4", "webm", "ogg", "mov"].includes(extension)) {
+    return "video/" + extension;
+  } else if (["mp3", "wav", "ogg", "aac"].includes(extension)) {
+    return "audio/" + extension;
+  } else if (extension === "pdf") {
+    return "application/pdf";
+  } else if (["zip", "rar", "7z", "tar", "gz"].includes(extension)) {
+    return "application/archive";
+  } else {
+    return "application/octet-stream";
+  }
+}

@@ -34,11 +34,15 @@ function GroupMediaDialog({ open, onOpenChange, groupId }) {
         const response = await apiClient.get(
           `/api/groups/get-group-media/${groupId}`
         );
+        console.log("Media response:", response.data);
         if (response.data && response.data.files) {
           setMediaFiles(response.data.files);
+        } else {
+          setMediaFiles([]);
         }
       } catch (error) {
         console.error("Error fetching group media:", error);
+        setMediaFiles([]);
       } finally {
         setIsLoading(false);
       }
@@ -88,8 +92,8 @@ function GroupMediaDialog({ open, onOpenChange, groupId }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1b1c24] border-[#2c2e3b] text-white max-w-2xl w-full">
-        <DialogHeader>
+      <DialogContent className="bg-[#1b1c24] border-[#2c2e3b] text-white max-w-2xl w-full max-h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-center text-xl">
             {t("groupInfo.sharedMedia")}
           </DialogTitle>
@@ -105,53 +109,64 @@ function GroupMediaDialog({ open, onOpenChange, groupId }) {
             <p>{t("groupInfo.noMediaShared")}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
-            {mediaFiles.map((file, index) => (
-              <div
-                key={index}
-                className="relative group bg-[#2c2e3b] rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-[#363848] transition-colors"
-                onClick={() => setSelectedFile(file)}
-              >
-                <div className="w-full aspect-square flex items-center justify-center mb-2 overflow-hidden rounded-md">
-                  {isImageFile(file.fileType) ? (
-                    <img
-                      src={`${HOST}/${file.fileURL}`}
-                      alt={file.fileName}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      {getFileIcon(file.fileType)}
-                    </div>
-                  )}
+          <ScrollArea className="flex-grow overflow-auto my-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
+              {mediaFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="relative group bg-[#2c2e3b] rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer hover:bg-[#363848] transition-colors"
+                  onClick={() => setSelectedFile(file)}
+                >
+                  <div className="w-full aspect-square flex items-center justify-center mb-2 overflow-hidden rounded-md">
+                    {isImageFile(file.fileType) ? (
+                      <img
+                        src={`${HOST}/${file.fileURL}`}
+                        alt={file.fileName}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        {getFileIcon(file.fileType)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs truncate w-full">
+                      {file.fileName.length > 15
+                        ? file.fileName.substring(0, 12) + "..."
+                        : file.fileName}
+                    </p>
+                    <span className="text-xs text-gray-400">
+                      {new Date(file.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                    <Button
+                      size="sm"
+                      className="bg-[#126319] hover:bg-[#1a8f24]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadFile(file.fileURL);
+                      }}
+                    >
+                      <FaDownload className="mr-2" />
+                      {t("common.download")}
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-xs truncate w-full">
-                    {file.fileName.length > 15
-                      ? file.fileName.substring(0, 12) + "..."
-                      : file.fileName}
-                  </p>
-                  <span className="text-xs text-gray-400">
-                    {new Date(file.timestamp).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                  <Button
-                    size="sm"
-                    className="bg-[#126319] hover:bg-[#1a8f24]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      downloadFile(file.fileURL);
-                    }}
-                  >
-                    <FaDownload className="mr-2" />
-                    {t("common.download")}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
+
+        <DialogFooter className="flex-shrink-0 mt-auto pt-2 border-t border-[#2c2e3b]">
+          <Button
+            onClick={() => onOpenChange(false)}
+            className="bg-[#2c2e3b] hover:bg-[#363848] text-white"
+          >
+            {t("common.close")}
+          </Button>
+        </DialogFooter>
 
         {selectedFile && (
           <div
@@ -190,15 +205,6 @@ function GroupMediaDialog({ open, onOpenChange, groupId }) {
             </div>
           </div>
         )}
-
-        <DialogFooter>
-          <Button
-            onClick={() => onOpenChange(false)}
-            className="bg-[#2c2e3b] hover:bg-[#363848] text-white"
-          >
-            {t("common.close")}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

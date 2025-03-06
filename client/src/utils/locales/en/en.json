@@ -214,9 +214,14 @@
     "noAvailableFriends": "No friends available to add",
     "addSelected": "Add Selected",
     "membersAdded": "Members added successfully",
-    "addMembersError": "Error adding members"
+    "addMembersError": "Error adding members",
+    "sharedMedia": "Shared Media",
+    "noMediaShared": "No media shared in this group yet",
+    "viewMedia": "View Shared Media"
   },
   "common": {
+    "download": "Download",
+    "close": "Close",
     "cancel": "Cancel",
     "loading": "Loading",
     "confirm": "Confirm",

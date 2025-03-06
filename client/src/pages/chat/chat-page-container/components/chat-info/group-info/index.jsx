@@ -8,8 +8,10 @@ import {
   FaUserPlus,
   FaCrown,
   FaUserFriends,
+  FaImages,
+  FaSignOutAlt,
+  FaTrashAlt,
 } from "react-icons/fa";
-import { AiOutlineClose } from "react-icons/ai";
 import { getAvatar } from "@/lib/utils";
 import { HOST } from "@/utils/constants";
 import { toast } from "sonner";
@@ -21,13 +23,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import NewAdminDialog from "../new-admin-dialog";
 import ConfirmDialog from "../confirm-dialog";
 import { useSocket } from "@/context/SocketContext";
 import AddMembersDialog from "./add-members-dialog";
+import GroupMediaDialog from "./media-dialog";
 
 function GroupInfoDialog({ open, onOpenChange, group }) {
   const socket = useSocket();
@@ -47,6 +50,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
   const [selectedMember, setSelectedMember] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddMembersDialog, setShowAddMembersDialog] = useState(false);
+  const [showMediaDialog, setShowMediaDialog] = useState(false);
 
   // Funzione per caricare i dettagli completi del gruppo
   const loadGroupDetails = async () => {
@@ -164,36 +168,14 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
     setShowConfirmDialog(true);
   };
 
-  const handleLeaveGroup = async () => {
-    try {
-      await apiClient.post("/api/groups/leave-group", {
-        groupId: group._id,
-      });
-
-      // Chiudere la chat e tornare alla vista principale
-      closeChat();
-      onOpenChange(false);
-
-      // Emettere un evento socket per notificare che l'utente è uscito
-      if (socket) {
-        socket.emit("leftGroup", {
-          groupId: group._id,
-          userId: user._id,
-        });
-      }
-
-      // Aggiorna immediatamente lo stato locale
-      const { updateGroup } = useChatStore.getState();
-      updateGroup(group._id, {
-        isActive: false,
-        userRemoved: false,
-        userLeft: true,
-      });
-
-      toast.success(t("groupInfo.leftGroup"));
-    } catch (error) {
-      console.error("Error leaving group:", error);
-      toast.error(t("groupInfo.leaveGroupError"));
+  const handleLeaveGroup = () => {
+    if (isAdmin) {
+      // Se l'utente è admin, deve prima selezionare un nuovo admin
+      setShowNewAdminDialog(true);
+    } else {
+      // Altrimenti, mostra la finestra di conferma
+      setConfirmAction("leaveGroup");
+      setShowConfirmDialog(true);
     }
   };
 
@@ -234,6 +216,23 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
           // Chiudere la chat e tornare alla vista principale
           closeChat();
           onOpenChange(false);
+
+          // Emettere un evento socket per notificare che l'utente è uscito
+          if (socket) {
+            socket.emit("leftGroup", {
+              groupId: group._id,
+              userId: user._id,
+            });
+          }
+
+          // Aggiorna immediatamente lo stato locale
+          const { updateGroup } = useChatStore.getState();
+          updateGroup(group._id, {
+            isActive: false,
+            userRemoved: false,
+            userLeft: true,
+          });
+
           toast.success(t("groupInfo.leftGroup"));
           break;
 
@@ -310,19 +309,12 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
         // Aggiorna lo stato locale dei membri
         setMembers((prevMembers) => [...prevMembers, ...newMembers]);
 
-        console.log("Emitting membersAdded event:", {
-          groupId: group._id,
-          memberIds: selectedFriends.map((friend) => friend._id),
-        });
-
         // Emetti evento socket per notificare i nuovi membri
         if (socket) {
           socket.emit("membersAdded", {
             groupId: group._id,
             memberIds: selectedFriends.map((friend) => friend._id),
           });
-        } else {
-          console.warn("Socket not available for membersAdded event");
         }
 
         toast.success(t("groupInfo.membersAdded"));
@@ -337,38 +329,49 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-[#1b1c24] border-[#2c2e3b] text-white max-w-md w-full">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl">
+        <DialogContent className="bg-[#1b1c24] border-[#2f303b] text-white max-w-md w-full max-h-[85vh] flex flex-col">
+          <DialogHeader className="px-4 py-4 border-b border-[#2f303b]">
+            <DialogTitle className="text-lg font-medium">
               {group?.name || t("groupInfo.groupInformation")}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="mt-4">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium text-gray-300">
-                {t("groupInfo.members")} ({sortedMembers.length})
-              </h3>
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Media button */}
+            <Button
+              onClick={() => setShowMediaDialog(true)}
+              className="mx-4 mt-4 mb-2 bg-[#126319] hover:bg-[#1a8f24] text-white"
+            >
+              <FaImages className="mr-2" />
+              {t("groupInfo.viewMedia")}
+            </Button>
 
-              {/* Pulsante per aggiungere membri (solo per admin) */}
+            {/* Members section */}
+            <div className="px-4 mt-4 flex items-center justify-between">
+              <div className="text-sm font-medium uppercase tracking-wider text-gray-400">
+                {t("groupInfo.members")} ({sortedMembers.length})
+              </div>
+
               {isAdmin && (
-                <button
+                <Button
                   onClick={() => setShowAddMembersDialog(true)}
-                  className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-purple-500 hover:text-purple-400 hover:bg-[#2f303b]"
                 >
-                  <FaUserFriends size={16} />
-                  <span>{t("groupInfo.addMembers")}</span>
-                </button>
+                  <FaUserFriends className="mr-1" size={12} />
+                  {t("groupInfo.addMembers")}
+                </Button>
               )}
             </div>
 
-            <ScrollArea className="h-60 pr-4">
+            <ScrollArea className="flex-1 px-4 py-2">
               {isLoading ? (
-                <div className="flex justify-center py-4 text-gray-400">
+                <div className="py-4 text-center text-sm text-gray-500">
                   {t("common.loading")}...
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-1">
                   {sortedMembers.map((member) => {
                     const isCurrentUser = member.isCurrentUser;
                     const memberIsFriend = isFriend(member._id);
@@ -376,31 +379,31 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                     return (
                       <div
                         key={member._id}
-                        className="flex items-center justify-between px-3 py-2 bg-[#2c2e3b] rounded-lg hover:bg-[#363848] transition-colors"
+                        className="flex items-center py-2 px-2 hover:bg-[#2f303b] transition-colors cursor-pointer"
                       >
                         <div
-                          className="flex items-center gap-3 flex-1 cursor-pointer"
+                          className="flex items-center flex-1"
                           onClick={() => handleMemberClick(member)}
                         >
-                          <Avatar className="h-10 w-10 rounded-full overflow-hidden">
+                          <Avatar className="h-8 w-8 mr-3">
                             {member.image ? (
                               <AvatarImage
                                 src={`${HOST}/${member.image}`}
                                 alt="profile-image"
-                                className="object-cover w-full h-full bg-black"
+                                className="object-cover"
                               />
                             ) : (
                               <AvatarImage
                                 src={getAvatar(member.avatar)}
                                 alt="avatar"
-                                className="object-cover w-full h-full"
+                                className="object-cover"
                               />
                             )}
                           </Avatar>
 
-                          <div className="flex flex-col">
+                          <div>
                             <div className="flex items-center">
-                              <span className="text-white">
+                              <span className="text-sm">
                                 {isCurrentUser
                                   ? t("groupInfo.you")
                                   : member.userName}
@@ -408,40 +411,43 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
 
                               {member.isAdmin && (
                                 <FaCrown
-                                  className="ml-2 text-yellow-500"
-                                  size={16}
-                                  title={t("groupInfo.admin")}
+                                  className="ml-1.5 text-yellow-500"
+                                  size={10}
                                 />
                               )}
                             </div>
 
                             {isCurrentUser && member.isAdmin && (
-                              <span className="text-xs text-gray-400">
+                              <div className="text-xs text-gray-500">
                                 {t("groupInfo.youAreAdmin")}
-                              </span>
+                              </div>
                             )}
                           </div>
                         </div>
 
-                        {!isCurrentUser && isAdmin && (
-                          <button
-                            onClick={() => handleRemoveMember(member)}
-                            className="p-2 text-red-500 hover:text-red-400 transition-colors"
-                            title={t("groupInfo.removeMember")}
-                          >
-                            <FaUserMinus size={16} />
-                          </button>
-                        )}
+                        <div className="flex">
+                          {!isCurrentUser && isAdmin && (
+                            <button
+                              onClick={() => handleRemoveMember(member)}
+                              className="p-1.5 text-red-500 hover:text-red-400"
+                              title={t("groupInfo.removeMember")}
+                            >
+                              <FaUserMinus size={14} />
+                            </button>
+                          )}
 
-                        {!isCurrentUser && !memberIsFriend && (
-                          <button
-                            onClick={() => handleSendFriendRequest(member._id)}
-                            className="p-2 text-blue-500 hover:text-blue-400 transition-colors"
-                            title={t("groupInfo.addFriend")}
-                          >
-                            <FaUserPlus size={16} />
-                          </button>
-                        )}
+                          {!isCurrentUser && !memberIsFriend && (
+                            <button
+                              onClick={() =>
+                                handleSendFriendRequest(member._id)
+                              }
+                              className="p-1.5 text-blue-500 hover:text-blue-400"
+                              title={t("groupInfo.addFriend")}
+                            >
+                              <FaUserPlus size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -450,34 +456,36 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
             </ScrollArea>
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
-            {isAdmin ? (
-              <>
+          <div className="px-4 py-4 border-t border-[#2f303b]">
+            <div className="flex flex-col sm:flex-row gap-2">
+              {isAdmin ? (
+                <>
+                  <Button
+                    className="w-full sm:w-1/2 text-red-500 border border-red-500/30 bg-transparent hover:bg-red-500/10"
+                    onClick={handleLeaveGroup}
+                  >
+                    <FaSignOutAlt className="mr-2" size={14} />
+                    {t("groupInfo.leaveGroup")}
+                  </Button>
+                  <Button
+                    className="w-full sm:w-1/2 bg-red-500 hover:bg-red-600 text-white"
+                    onClick={handleDeleteGroup}
+                  >
+                    <FaTrashAlt className="mr-2" size={14} />
+                    {t("groupInfo.deleteGroup")}
+                  </Button>
+                </>
+              ) : (
                 <Button
-                  variant="outline"
-                  className="w-full sm:w-auto border-red-500 text-red-500 hover:bg-red-500/10"
+                  className="w-full text-red-500 border border-red-500/30 bg-transparent hover:bg-red-500/10"
                   onClick={handleLeaveGroup}
                 >
+                  <FaSignOutAlt className="mr-2" size={14} />
                   {t("groupInfo.leaveGroup")}
                 </Button>
-                <Button
-                  variant="destructive"
-                  className="w-full sm:w-auto"
-                  onClick={handleDeleteGroup}
-                >
-                  {t("groupInfo.deleteGroup")}
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full border-red-500 text-red-500 hover:bg-red-500/10"
-                onClick={handleLeaveGroup}
-              >
-                {t("groupInfo.leaveGroup")}
-              </Button>
-            )}
-          </DialogFooter>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -509,6 +517,15 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
           onOpenChange={setShowAddMembersDialog}
           existingMembers={members.map((m) => m._id)}
           onMembersSelected={handleAddMembers}
+        />
+      )}
+
+      {/* Dialog per visualizzare i media del gruppo */}
+      {showMediaDialog && (
+        <GroupMediaDialog
+          open={showMediaDialog}
+          onOpenChange={setShowMediaDialog}
+          groupId={group._id}
         />
       )}
     </>

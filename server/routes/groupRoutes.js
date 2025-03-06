@@ -10,6 +10,7 @@ import {
   changeAdmin,
   getGroupDetails,
   addMembers,
+  getGroupMedia,
 } from "../controller/GroupController.js";
 
 const groupRoutes = Router();
@@ -23,5 +24,6 @@ groupRoutes.delete("/delete-group/:groupId", verifyToken, deleteGroup);
 groupRoutes.post("/change-admin", verifyToken, changeAdmin);
 groupRoutes.get("/get-group-details/:groupId", verifyToken, getGroupDetails);
 groupRoutes.post("/add-members", verifyToken, addMembers);
+groupRoutes.get("/get-group-media/:groupId", verifyToken, getGroupMedia);
 
 export default groupRoutes;

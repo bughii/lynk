@@ -4,7 +4,6 @@ import { useFriendStore } from "@/store/friendStore";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +14,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
+import { FaUserPlus, FaSearch, FaCheck, FaTimes } from "react-icons/fa";
 
 function AddMembersDialog({
   open,
@@ -40,6 +40,10 @@ function AddMembersDialog({
 
     if (open) {
       loadFriends();
+    } else {
+      // Reset dello stato quando il dialogo si chiude
+      setSelectedFriends([]);
+      setSearchTerm("");
     }
   }, [open, fetchFriends]);
 
@@ -77,104 +81,139 @@ function AddMembersDialog({
     onMembersSelected(selectedFriends);
   };
 
+  const removeFriend = (friendId, e) => {
+    e.stopPropagation();
+    setSelectedFriends(selectedFriends.filter((f) => f._id !== friendId));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1b1c24] border-[#2c2e3b] text-white max-w-md w-full">
-        <DialogHeader>
-          <DialogTitle className="text-center text-xl">
+      <DialogContent className="bg-[#1b1c24] border-[#2f303b] text-white max-w-md w-full max-h-[85vh] flex flex-col">
+        <DialogHeader className="px-4 py-4 border-b border-[#2f303b]">
+          <DialogTitle className="text-lg font-medium">
             {t("groupInfo.addMembers")}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="mt-4">
-          <Input
-            placeholder={t("groupInfo.searchFriends")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4 bg-[#2c2e3b] border-none text-white"
-          />
-
-          <div className="mb-2 flex justify-between text-sm">
-            <span className="text-gray-300">
-              {filteredFriends.length} {t("groupInfo.availableFriends")}
-            </span>
-            <span className="text-blue-400">
-              {selectedFriends.length} {t("groupInfo.selected")}
-            </span>
+        <div className="p-4">
+          <div className="relative mb-4">
+            <Input
+              placeholder={t("groupInfo.searchFriends")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 bg-[#2f303b] border-none text-white focus:ring-0"
+            />
+            <FaSearch
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              size={12}
+            />
           </div>
 
-          <ScrollArea className="h-60 pr-4">
-            {isLoading ? (
-              <div className="flex justify-center py-4 text-gray-400">
-                {t("common.loading")}...
+          {selectedFriends.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs uppercase tracking-wider text-gray-400 mb-2">
+                {t("groupInfo.selected")} ({selectedFriends.length})
               </div>
-            ) : filteredFriends.length === 0 ? (
-              <div className="flex justify-center py-4 text-gray-400">
-                {t("groupInfo.noAvailableFriends")}
+              <div className="flex flex-wrap gap-1">
+                {selectedFriends.map((friend) => (
+                  <div
+                    key={friend._id}
+                    className="flex items-center gap-1 py-1 px-2 text-xs text-white border border-[#2f303b]"
+                  >
+                    <span>{friend.userName}</span>
+                    <FaTimes
+                      className="ml-1 cursor-pointer text-gray-400 hover:text-white"
+                      onClick={(e) => removeFriend(friend._id, e)}
+                      size={10}
+                    />
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredFriends.map((friend) => {
-                  const isSelected = selectedFriends.some(
-                    (f) => f._id === friend._id
-                  );
+            </div>
+          )}
 
-                  return (
-                    <div
-                      key={friend._id}
-                      className={`flex items-center px-3 py-2 bg-[#2c2e3b] rounded-lg hover:bg-[#363848] transition-colors cursor-pointer ${
-                        isSelected ? "ring-1 ring-blue-500" : ""
-                      }`}
-                      onClick={() => handleToggleFriend(friend)}
-                    >
-                      <div className="flex items-center flex-1">
-                        <Checkbox
-                          checked={isSelected}
-                          className="mr-3 border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                          onCheckedChange={() => handleToggleFriend(friend)}
-                        />
-
-                        <Avatar className="h-10 w-10 rounded-full overflow-hidden mr-3">
-                          {friend.image ? (
-                            <AvatarImage
-                              src={`${HOST}/${friend.image}`}
-                              alt="profile"
-                              className="object-cover w-full h-full bg-black"
-                            />
-                          ) : (
-                            <AvatarImage
-                              src={getAvatar(friend.avatar)}
-                              alt="avatar"
-                              className="object-cover w-full h-full"
-                            />
-                          )}
-                        </Avatar>
-
-                        <span className="text-white">{friend.userName}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </ScrollArea>
+          {filteredFriends.length > 0 && (
+            <div className="text-xs uppercase tracking-wider text-gray-400 mb-2">
+              {t("groupInfo.availableFriends")} ({filteredFriends.length})
+            </div>
+          )}
         </div>
 
-        <DialogFooter className="flex justify-end mt-4">
-          <Button
-            variant="outline"
-            className="mr-2"
-            onClick={() => onOpenChange(false)}
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button
-            disabled={selectedFriends.length === 0}
-            onClick={handleConfirm}
-            className="bg-[#126319] hover:bg-[#1a8f24]"
-          >
-            {t("groupInfo.addSelected")}
-          </Button>
+        <ScrollArea className="flex-1 px-4">
+          {isLoading ? (
+            <div className="py-4 text-center text-sm text-gray-500">
+              {t("common.loading")}...
+            </div>
+          ) : filteredFriends.length === 0 ? (
+            <div className="py-4 text-center text-sm text-gray-500">
+              {t("groupInfo.noAvailableFriends")}
+            </div>
+          ) : (
+            <div>
+              {filteredFriends.map((friend) => {
+                const isSelected = selectedFriends.some(
+                  (f) => f._id === friend._id
+                );
+
+                return (
+                  <div
+                    key={friend._id}
+                    className={`flex items-center justify-between py-2 px-2 cursor-pointer border-b border-[#2f303b] last:border-0 ${
+                      isSelected ? "bg-[#2f303b]" : "hover:bg-[#2f303b]"
+                    } transition-colors`}
+                    onClick={() => handleToggleFriend(friend)}
+                  >
+                    <div className="flex items-center">
+                      <Avatar className="h-7 w-7 mr-3">
+                        {friend.image ? (
+                          <AvatarImage
+                            src={`${HOST}/${friend.image}`}
+                            alt="profile"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <AvatarImage
+                            src={getAvatar(friend.avatar)}
+                            alt="avatar"
+                            className="object-cover"
+                          />
+                        )}
+                      </Avatar>
+                      <span className="text-sm">{friend.userName}</span>
+                    </div>
+
+                    {isSelected ? (
+                      <button className="text-purple-500 p-1">
+                        <FaCheck size={14} />
+                      </button>
+                    ) : (
+                      <button className="text-gray-500 hover:text-purple-500 p-1">
+                        <FaUserPlus size={14} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
+
+        <DialogFooter className="p-4 border-t border-[#2f303b]">
+          <div className="flex gap-2 w-full">
+            <Button
+              className="flex-1 bg-[#2f303b] hover:bg-[#3b3c48] text-white"
+              onClick={() => onOpenChange(false)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={selectedFriends.length === 0}
+              onClick={handleConfirm}
+              className="flex-1 bg-[#126319] hover:bg-[#1a8f24] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t("groupInfo.addSelected")}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

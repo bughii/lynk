@@ -215,9 +215,14 @@
     "noAvailableFriends": "Nessun amico disponibile da aggiungere",
     "addSelected": "Aggiungi Selezionati",
     "membersAdded": "Membri aggiunti con successo",
-    "addMembersError": "Errore durante l'aggiunta dei membri"
+    "addMembersError": "Errore durante l'aggiunta dei membri",
+    "sharedMedia": "Media Condivisi",
+    "noMediaShared": "Nessun media condiviso in questo gruppo",
+    "viewMedia": "Visualizza Media Condivisi"
   },
   "common": {
+    "download": "Download",
+    "close": "Close",
     "cancel": "Annulla",
     "loading": "Caricamento",
     "confirm": "Conferma",
