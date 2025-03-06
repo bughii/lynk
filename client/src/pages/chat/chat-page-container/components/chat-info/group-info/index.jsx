@@ -329,18 +329,18 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-[#1b1c24] border-[#2f303b] text-white max-w-md w-full max-h-[85vh] flex flex-col">
-          <DialogHeader className="px-4 py-4 border-b border-[#2f303b]">
-            <DialogTitle className="text-lg font-medium">
+        <DialogContent className="bg-[#1b1c24] border-[#2f303b] text-white max-w-md w-full max-h-[85vh] flex flex-col space-mono-regular">
+          <DialogHeader className="px-4 py-4 border-b border-[#2f303b] flex-shrink-0">
+            <DialogTitle className="text-lg font-medium text-center">
               {group?.name || t("groupInfo.groupInformation")}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex flex-col flex-1 overflow-hidden">
             {/* Media button */}
             <Button
               onClick={() => setShowMediaDialog(true)}
-              className="mx-4 mt-4 mb-2 bg-[#126319] hover:bg-[#1a8f24] text-white"
+              className="mx-4 mt-4 mb-2 bg-[#126319] hover:bg-[#1a8f24] text-white transition-all duration-300"
             >
               <FaImages className="mr-2" />
               {t("groupInfo.viewMedia")}
@@ -348,7 +348,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
 
             {/* Members section */}
             <div className="px-4 mt-4 flex items-center justify-between">
-              <div className="text-sm font-medium uppercase tracking-wider text-gray-400">
+              <div className="text-xs font-medium uppercase tracking-wider text-gray-400">
                 {t("groupInfo.members")} ({sortedMembers.length})
               </div>
 
@@ -357,7 +357,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                   onClick={() => setShowAddMembersDialog(true)}
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 text-xs text-purple-500 hover:text-purple-400 hover:bg-[#2f303b]"
+                  className="h-8 px-2 text-xs text-[#126319] hover:text-[#1a8f24] hover:bg-[#2f303b] transition-all"
                 >
                   <FaUserFriends className="mr-1" size={12} />
                   {t("groupInfo.addMembers")}
@@ -365,7 +365,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
               )}
             </div>
 
-            <ScrollArea className="flex-1 px-4 py-2">
+            <ScrollArea className="flex-grow overflow-auto px-4 py-4">
               {isLoading ? (
                 <div className="py-4 text-center text-sm text-gray-500">
                   {t("common.loading")}...
@@ -379,31 +379,31 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                     return (
                       <div
                         key={member._id}
-                        className="flex items-center py-2 px-2 hover:bg-[#2f303b] transition-colors cursor-pointer"
+                        className="flex items-center py-2 px-3 hover:bg-[#2f303b] rounded-lg transition-colors cursor-pointer"
                       >
                         <div
                           className="flex items-center flex-1"
                           onClick={() => handleMemberClick(member)}
                         >
-                          <Avatar className="h-8 w-8 mr-3">
+                          <Avatar className="h-10 w-10 mr-3">
                             {member.image ? (
                               <AvatarImage
                                 src={`${HOST}/${member.image}`}
                                 alt="profile-image"
-                                className="object-cover"
+                                className="object-cover w-full h-full"
                               />
                             ) : (
                               <AvatarImage
                                 src={getAvatar(member.avatar)}
                                 alt="avatar"
-                                className="object-cover"
+                                className="object-cover w-full h-full"
                               />
                             )}
                           </Avatar>
 
-                          <div>
+                          <div className="flex flex-col">
                             <div className="flex items-center">
-                              <span className="text-sm">
+                              <span className="text-sm font-medium">
                                 {isCurrentUser
                                   ? t("groupInfo.you")
                                   : member.userName}
@@ -412,7 +412,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                               {member.isAdmin && (
                                 <FaCrown
                                   className="ml-1.5 text-yellow-500"
-                                  size={10}
+                                  size={12}
                                 />
                               )}
                             </div>
@@ -429,7 +429,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                           {!isCurrentUser && isAdmin && (
                             <button
                               onClick={() => handleRemoveMember(member)}
-                              className="p-1.5 text-red-500 hover:text-red-400"
+                              className="p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all"
                               title={t("groupInfo.removeMember")}
                             >
                               <FaUserMinus size={14} />
@@ -441,7 +441,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                               onClick={() =>
                                 handleSendFriendRequest(member._id)
                               }
-                              className="p-1.5 text-blue-500 hover:text-blue-400"
+                              className="p-2 text-blue-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-all"
                               title={t("groupInfo.addFriend")}
                             >
                               <FaUserPlus size={14} />
@@ -456,19 +456,19 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
             </ScrollArea>
           </div>
 
-          <div className="px-4 py-4 border-t border-[#2f303b]">
+          <div className="px-4 py-4 border-t border-[#2f303b] flex-shrink-0">
             <div className="flex flex-col sm:flex-row gap-2">
               {isAdmin ? (
                 <>
                   <Button
-                    className="w-full sm:w-1/2 text-red-500 border border-red-500/30 bg-transparent hover:bg-red-500/10"
+                    className="w-full sm:w-1/2 text-red-500 border border-red-500/30 bg-transparent hover:bg-red-500/10 transition-all"
                     onClick={handleLeaveGroup}
                   >
                     <FaSignOutAlt className="mr-2" size={14} />
                     {t("groupInfo.leaveGroup")}
                   </Button>
                   <Button
-                    className="w-full sm:w-1/2 bg-red-500 hover:bg-red-600 text-white"
+                    className="w-full sm:w-1/2 bg-red-500 hover:bg-red-600 text-white transition-all"
                     onClick={handleDeleteGroup}
                   >
                     <FaTrashAlt className="mr-2" size={14} />
@@ -477,7 +477,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                 </>
               ) : (
                 <Button
-                  className="w-full text-red-500 border border-red-500/30 bg-transparent hover:bg-red-500/10"
+                  className="w-full text-red-500 border border-red-500/30 bg-transparent hover:bg-red-500/10 transition-all"
                   onClick={handleLeaveGroup}
                 >
                   <FaSignOutAlt className="mr-2" size={14} />

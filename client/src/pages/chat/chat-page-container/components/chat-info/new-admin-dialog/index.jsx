@@ -29,89 +29,69 @@ function NewAdminDialog({ open, onOpenChange, members, onAdminSelected }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1b1c24] border-[#2c2e3b] text-white max-w-md w-full max-h-[85vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle className="text-center text-xl flex items-center justify-center gap-2">
-            <FaCrown className="text-yellow-500" />
+      <DialogContent className="bg-[#1b1c24] border-[#2f303b] text-white max-w-md w-full max-h-[85vh] flex flex-col space-mono-regular">
+        <DialogHeader className="px-4 py-4 border-b border-[#2f303b] flex-shrink-0">
+          <DialogTitle className="text-lg font-medium text-center">
             {t("groupInfo.selectNewAdmin")}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 py-4 flex-1 overflow-hidden flex flex-col">
-          <div
-            className="bg-[#2c2e3b]/80 text-gray-300 text-sm p-4 rounded-xl mb-6 shadow-inner"
-            style={{ boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.2)" }}
-          >
+        <div className="p-4 flex-shrink-0">
+          <div className="bg-[#2c2e3b] text-gray-300 text-sm p-4 rounded-md">
             {t("groupInfo.selectNewAdminDescription")}
           </div>
-
-          <ScrollArea className="flex-1 pr-2">
-            <div className="space-y-2">
-              {members.map((member) => {
-                const isSelected = selectedMemberId === member._id;
-
-                return (
-                  <div
-                    key={member._id}
-                    className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                      isSelected
-                        ? "bg-yellow-500/20 hover:bg-yellow-500/30 shadow-sm"
-                        : "bg-[#2c2e3b] hover:bg-[#363848]"
-                    }`}
-                    onClick={() => handleSelectMember(member._id)}
-                  >
-                    <div className="relative mr-3">
-                      <Avatar
-                        className={`h-12 w-12 rounded-full overflow-hidden ${
-                          isSelected
-                            ? "ring-2 ring-yellow-500 ring-offset-1 ring-offset-[#1b1c24]"
-                            : ""
-                        }`}
-                      >
-                        {member.image ? (
-                          <AvatarImage
-                            src={`${HOST}/${member.image}`}
-                            alt="profile-image"
-                            className="object-cover w-full h-full bg-black"
-                          />
-                        ) : (
-                          <AvatarImage
-                            src={getAvatar(member.avatar)}
-                            alt="avatar"
-                            className="object-cover w-full h-full"
-                          />
-                        )}
-                      </Avatar>
-                      {isSelected && (
-                        <div className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1 shadow-md">
-                          <FaCheck size={10} className="text-[#1b1c24]" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <span className="text-white font-medium">
-                        {member.userName}
-                      </span>
-                    </div>
-
-                    {isSelected && (
-                      <div className="ml-2 bg-yellow-500 text-[#1b1c24] p-2 rounded-full shadow-sm">
-                        <FaCrown size={16} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
         </div>
 
-        <div className="p-4 border-t border-[#2c2e3b]">
+        <ScrollArea className="flex-grow overflow-auto px-4 py-4">
+          <div className="space-y-1">
+            {members.map((member) => {
+              const isSelected = selectedMemberId === member._id;
+
+              return (
+                <div
+                  key={member._id}
+                  className={`flex items-center py-2 px-3 hover:bg-[#2f303b] rounded-lg transition-colors cursor-pointer ${
+                    isSelected ? "bg-[#126319]/20" : ""
+                  }`}
+                  onClick={() => handleSelectMember(member._id)}
+                >
+                  <Avatar className="h-10 w-10 mr-3">
+                    {member.image ? (
+                      <AvatarImage
+                        src={`${HOST}/${member.image}`}
+                        alt="profile-image"
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <AvatarImage
+                        src={getAvatar(member.avatar)}
+                        alt="avatar"
+                        className="object-cover w-full h-full"
+                      />
+                    )}
+                  </Avatar>
+
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">
+                      {member.userName}
+                    </span>
+                  </div>
+
+                  {isSelected && (
+                    <div className="bg-[#126319] text-white p-2 rounded-full">
+                      <FaCrown size={14} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+
+        <div className="px-4 py-4 border-t border-[#2f303b] flex-shrink-0">
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
-              variant="outline"
-              className="flex-1 bg-[#2c2e3b] hover:bg-[#363848] text-gray-300 hover:text-white border-none transition-colors rounded-xl py-5"
+              className="w-full sm:w-1/2 bg-[#2c2e3b] hover:bg-[#363848] text-white transition-all"
               onClick={() => onOpenChange(false)}
             >
               {t("common.cancel")}
@@ -119,7 +99,7 @@ function NewAdminDialog({ open, onOpenChange, members, onAdminSelected }) {
             <Button
               disabled={!selectedMemberId}
               onClick={handleConfirm}
-              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-[#1b1c24] font-medium disabled:bg-yellow-500/50 disabled:text-[#1b1c24]/50 transition-colors rounded-xl py-5"
+              className="w-full sm:w-1/2 bg-[#126319] hover:bg-[#1a8f24] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {t("common.confirm")}
             </Button>
