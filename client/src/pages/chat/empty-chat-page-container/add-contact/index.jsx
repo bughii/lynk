@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFriendStore } from "@/store/friendStore";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { FaSearch } from "react-icons/fa";
 
 function AddContact() {
   const [searchedContacts, setSearchedContacts] = useState([]);
@@ -44,53 +45,65 @@ function AddContact() {
       toast.error(t("mainpage.friendsDialog.addFriend.requestSentError"));
     }
   };
-
   return (
-    <div className="flex flex-col">
-      <Input
-        placeholder={t(
-          "mainpage.friendsDialog.addFriend.searchFriendPlaceholder"
-        )}
-        value={searchTerm}
-        onChange={(e) => {
-          setSearchTerm(e.target.value);
-          searchContacts(e.target.value);
-        }}
-        className="rounded-lg p-6 bg-[#2c2e3b] border-none mb-4"
-      />
-      <ScrollArea className="h-[250px]">
-        <div className="flex flex-col gap-5">
-          {searchedContacts.map((contact) => (
-            <div
-              key={contact._id}
-              className="flex gap-3 items-center cursor-pointer"
-            >
-              <div>
-                <Avatar className="h-12 w-12 rounded-full overflow-hidden">
-                  {contact.image ? (
-                    <AvatarImage
-                      src={`${HOST}/${contact.image} `}
-                      alt="profile-image"
-                      className="object-cover w-full h-full bg-black"
-                    />
-                  ) : (
-                    <AvatarImage
-                      src={getAvatar(contact.avatar)}
-                      alt="avatar"
-                      className="object-cover w-full h-full"
-                    />
-                  )}
-                </Avatar>
-              </div>
-              <div className="space-mono-regular">{contact.userName}</div>
-              <button
-                className="ml-auto bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-4"
-                onClick={() => sendFriendRequest(contact._id)}
-              >
-                {t("mainpage.friendsDialog.addFriend.addFriendButton")}
-              </button>
+    <div className="flex flex-col space-mono-regular">
+      <div className="relative mb-4">
+        <input
+          type="text"
+          placeholder={t(
+            "mainpage.friendsDialog.addFriend.searchFriendPlaceholder"
+          )}
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            searchContacts(e.target.value);
+          }}
+          className="w-full pl-10 pr-3 py-3 rounded-lg bg-[#2c2e3b] border-none text-white focus:ring-1 focus:ring-[#126319]"
+        />
+        <FaSearch
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
+          size={16}
+        />
+      </div>
+      <ScrollArea className="h-[250px] pr-2">
+        <div className="space-y-3">
+          {searchedContacts.length === 0 ? (
+            <div className="text-center text-gray-400 py-4">
+              {t("mainpage.noSearchResults")}
             </div>
-          ))}
+          ) : (
+            searchedContacts.map((contact) => (
+              <div
+                key={contact._id}
+                className="flex items-center justify-between p-3 bg-[#1c1d25] rounded-lg hover:bg-[#2c2e3b] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12 rounded-full overflow-hidden">
+                    {contact.image ? (
+                      <AvatarImage
+                        src={`${HOST}/${contact.image}`}
+                        alt="profile-image"
+                        className="object-cover w-full h-full bg-black"
+                      />
+                    ) : (
+                      <AvatarImage
+                        src={getAvatar(contact.avatar)}
+                        alt="avatar"
+                        className="object-cover w-full h-full"
+                      />
+                    )}
+                  </Avatar>
+                  <div className="text-white">{contact.userName}</div>
+                </div>
+                <button
+                  className="bg-[#126319] text-white px-4 py-2 rounded-lg hover:bg-[#1a8f24] transition-colors"
+                  onClick={() => sendFriendRequest(contact._id)}
+                >
+                  {t("mainpage.friendsDialog.addFriend.addFriendButton")}
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </ScrollArea>
     </div>

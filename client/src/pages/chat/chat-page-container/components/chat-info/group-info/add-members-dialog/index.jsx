@@ -12,16 +12,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
-import {
-  FaUserPlus,
-  FaSearch,
-  FaCheck,
-  FaTimes,
-  FaUserFriends,
-} from "react-icons/fa";
+import { FaUserPlus, FaSearch, FaCheck, FaUserFriends } from "react-icons/fa";
 
 function AddMembersDialog({
   open,
@@ -112,38 +105,18 @@ function AddMembersDialog({
             />
           </div>
 
-          {selectedFriends.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center">
-                <span>{t("groupInfo.selected")}</span>
-                <span className="ml-1 bg-[#126319] text-white text-xs rounded-full px-2 py-0.5 inline-flex items-center justify-center">
-                  {selectedFriends.length}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {selectedFriends.map((friend) => (
-                  <div
-                    key={friend._id}
-                    className="flex items-center gap-1 py-1 px-2 bg-[#2c2e3b] rounded-lg text-sm text-white"
-                  >
-                    <span>{friend.userName}</span>
-                    <FaTimes
-                      className="ml-1 cursor-pointer text-gray-400 hover:text-white"
-                      onClick={(e) => removeFriend(friend._id, e)}
-                      size={12}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {filteredFriends.length > 0 && (
             <div className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center">
               <span>{t("groupInfo.availableFriends")}</span>
               <span className="ml-1 bg-[#2c2e3b] text-white text-xs rounded-full px-2 py-0.5 inline-flex items-center justify-center">
                 {filteredFriends.length}
               </span>
+
+              {selectedFriends.length > 0 && (
+                <span className="ml-2 bg-[#126319] text-white text-xs rounded-full px-2 py-0.5 inline-flex items-center justify-center">
+                  {selectedFriends.length} {t("groupInfo.selected")}
+                </span>
+              )}
             </div>
           )}
         </div>

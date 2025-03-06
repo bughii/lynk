@@ -17,21 +17,17 @@ const FriendRequests = () => {
   } = useFriendStore();
   const { t } = useTranslation();
 
-  // Fetching the received requests
   useEffect(() => {
     fetchReceivedRequests();
   }, []);
 
   const handleAccept = async (requestId) => {
     try {
-      const data = await acceptRequest(requestId);
-      if (data) {
-        toast.success(
-          t("mainpage.friendsDialog.requestsList.requestAcceptedSuccess")
-        );
-      }
+      await acceptRequest(requestId);
+      toast.success(
+        t("mainpage.friendsDialog.requestsList.requestAcceptedSuccess")
+      );
     } catch (error) {
-      console.error("Errore nell'accettare la richiesta:", error);
       toast.error(
         t("mainpage.friendsDialog.requestsList.requestAcceptedError")
       );
@@ -39,38 +35,34 @@ const FriendRequests = () => {
   };
 
   const handleReject = async (requestId) => {
-    rejectRequest(requestId)
-      .then((response) => {
-        console.log("Risposta accettata:", response);
-        if (response.status === 200) {
-          toast.success(
-            t("mainpage.friendsDialog.requestsList.requestRejectedSuccess")
-          );
-        }
-      })
-      .catch((error) => {
-        if (error.response) {
-          toast.error(
-            t("mainpage.friendsDialog.requestsList.requestRejectedError")
-          );
-        }
-      });
+    try {
+      await rejectRequest(requestId);
+      toast.success(
+        t("mainpage.friendsDialog.requestsList.requestRejectedSuccess")
+      );
+    } catch (error) {
+      toast.error(
+        t("mainpage.friendsDialog.requestsList.requestRejectedError")
+      );
+    }
   };
 
   return (
-    <div className="flex flex-col">
-      <ScrollArea className="h-[250px]">
-        <div className="flex flex-col gap-5">
-          {receivedRequests.length === 0 ? (
-            <p>{t("mainpage.friendsDialog.requestsList.noRequests")}</p>
-          ) : (
-            receivedRequests.map((request) => {
-              const user = request.requester;
-              return (
-                <div
-                  key={request._id}
-                  className="flex gap-3 items-center p-3 bg-[#1c1d25] rounded-lg"
-                >
+    <ScrollArea className="h-[250px] pr-2">
+      <div className="space-y-3">
+        {receivedRequests.length === 0 ? (
+          <div className="text-center text-gray-400 py-4 space-mono-regular">
+            {t("mainpage.friendsDialog.requestsList.noRequests")}
+          </div>
+        ) : (
+          receivedRequests.map((request) => {
+            const user = request.requester;
+            return (
+              <div
+                key={request._id}
+                className="flex items-center justify-between p-3 bg-[#1c1d25] rounded-lg hover:bg-[#2c2e3b] transition-colors space-mono-regular"
+              >
+                <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12 rounded-full overflow-hidden">
                     {user.image ? (
                       <AvatarImage
@@ -86,32 +78,30 @@ const FriendRequests = () => {
                       />
                     )}
                   </Avatar>
-                  <div className="space-mono-regular text-white">
-                    {user.userName ? `${user.userName}` : ""}
-                  </div>
-                  <div className="ml-auto flex gap-2">
-                    <button
-                      onClick={() => handleAccept(request._id)}
-                      className="text-green-500 hover:text-green-400"
-                      title={t("mainpage.friendsDialog.requestsList.accept")}
-                    >
-                      <FaCheck size={20} />
-                    </button>
-                    <button
-                      onClick={() => handleReject(request._id)}
-                      className="text-red-500 hover:text-red-400"
-                      title={t("mainpage.friendsDialog.requestsList.reject")}
-                    >
-                      <FaTimes size={20} />
-                    </button>
-                  </div>
+                  <div className="text-white">{user.userName}</div>
                 </div>
-              );
-            })
-          )}
-        </div>
-      </ScrollArea>
-    </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAccept(request._id)}
+                    className="text-green-500 hover:text-green-400 p-2 rounded-full hover:bg-green-500/10 transition-colors"
+                    title={t("mainpage.friendsDialog.requestsList.accept")}
+                  >
+                    <FaCheck size={20} />
+                  </button>
+                  <button
+                    onClick={() => handleReject(request._id)}
+                    className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-red-500/10 transition-colors"
+                    title={t("mainpage.friendsDialog.requestsList.reject")}
+                  >
+                    <FaTimes size={20} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </ScrollArea>
   );
 };
 

@@ -56,6 +56,9 @@
   },
   "mainpage": {
     "welcomeMessageEmptyScreen": "Hello",
+    "online": "Online",
+    "noSearchResults": "No friends found for this search",
+    "noFriendsAvailable": "No friends available",
     "welcomeMessageEmptyScreen1": "Welcome to",
     "privateMessages": "Private Messages",
 
@@ -67,7 +70,14 @@
       "createGroup": "Create a group",
       "groupNamePlaceholder": "Enter group name",
       "searchFriendPlaceholder": "Search for a friend",
-      "createGroupButton": "Create Group"
+      "createGroupButton": "Create Group",
+      "createGroupDescription": "Choose a name for your new group. You can add members in the next step.",
+      "nextStepButton": "Next",
+      "addMembersTitle": "Add Group Members",
+      "membersSelected": "selected",
+      "groupNameRequired": "Please enter a group name",
+      "createGroupValidationError": "You need to select at least one friend and provide a group name",
+      "createGroupSuccess": "Group created successfully"
     },
     "friendsDialog": {
       "friendsList": {
@@ -95,6 +105,7 @@
         "requestCancelledError": "Error cancelling request"
       },
       "addFriend": {
+        "confirmRequest": "Do you want to send a friend request to",
         "title": "Add Friend",
         "requestSentSuccess": "Request sent successfully",
         "requestSentError": "Error sending request",
@@ -220,6 +231,8 @@
     "viewMedia": "View Shared Media"
   },
   "common": {
+    "back": "Back",
+    "startChat": "Start chat",
     "download": "Download",
     "close": "Close",
     "cancel": "Cancel",

@@ -56,6 +56,9 @@
   },
   "mainpage": {
     "welcomeMessageEmptyScreen": "Ciao",
+    "online": "In linea",
+    "noSearchResults": "Nessun amico trovato per questa ricerca",
+    "noFriendsAvailable": "Nessun amico disponibile",
     "welcomeMessageEmptyScreen1": "Benvenuto su",
     "privateMessages": "Messaggi Privati",
     "startChat": "Inizia una chat e seleziona un amico",
@@ -66,7 +69,14 @@
       "createGroup": "Crea un gruppo",
       "groupNamePlaceholder": "Inserisci il nome del gruppo",
       "searchFriendPlaceholder": "Cerca un amico",
-      "createGroupButton": "Crea Gruppo"
+      "createGroupButton": "Crea Gruppo",
+      "createGroupDescription": "Scegli un nome per il tuo nuovo gruppo. Potrai aggiungere membri nel prossimo passaggio.",
+      "nextStepButton": "Avanti",
+      "addMembersTitle": "Aggiungi Membri al Gruppo",
+      "membersSelected": "selezionati",
+      "groupNameRequired": "Inserisci un nome per il gruppo",
+      "createGroupValidationError": "Devi selezionare almeno un amico e fornire un nome per il gruppo",
+      "createGroupSuccess": "Gruppo creato con successo"
     },
     "friendsDialog": {
       "friendsList": {
@@ -94,6 +104,7 @@
         "requestCancelledError": "Errore durante l'annullamento della richiesta"
       },
       "addFriend": {
+        "confirmRequest": "Vuoi inviare una richiesta di amicizia a",
         "title": "Aggiungi Amico",
         "requestSentSuccess": "Richiesta inviata con successo",
         "requestSentError": "Errore durante l'invio della richiesta",
@@ -221,6 +232,7 @@
     "viewMedia": "Visualizza Media Condivisi"
   },
   "common": {
+    "back": "Indietro",
     "download": "Download",
     "close": "Close",
     "cancel": "Annulla",
