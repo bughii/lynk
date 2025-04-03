@@ -84,12 +84,13 @@ const setupSocket = (server) => {
   // Handles the sending of a group message
   const sendGroupMessage = async (message) => {
     try {
-      // Message details
+      // Exctracting the proprieties from the message object
       const { groupId, sender, content, messageType, fileURL } = message;
 
-      // Prima controlla se l'utente è membro del gruppo o è stato rimosso
+      // Check if the group with the provided groupId exists
       const group = await Group.findById(groupId);
 
+      // If not, log an error and emit a messageRejected event to the sender
       if (!group) {
         console.log(`Group ${groupId} not found`);
         const senderSocketId = userSocketMap.get(sender);
@@ -102,13 +103,13 @@ const setupSocket = (server) => {
         return;
       }
 
-      // Verifica se l'utente è ancora membro del gruppo
+      // Verify if the sender is either a member or the admin of the group
       const isMember =
         group.members.some(
           (member) => member.toString() === sender.toString()
         ) || group.admin.toString() === sender.toString();
 
-      // Ottieni informazioni sull'utente per verificare se è stato rimosso dal gruppo
+      // Retrieving the sender's data and checking if they have been removed from the group
       const user = await User.findById(sender);
       const isRemovedFromGroup =
         user.removedGroups &&
@@ -117,12 +118,12 @@ const setupSocket = (server) => {
             item.groupId && item.groupId.toString() === groupId.toString()
         );
 
-      // Se l'utente non è membro del gruppo o è stato rimosso, non inviare il messaggio
+      // If the sender is not a valid member or has been removed
       if (!isMember || isRemovedFromGroup) {
         console.log(
           `Blocked message from ${sender} to group ${groupId}: User not in group or removed`
         );
-        // Invia una notifica all'utente che non può inviare messaggi
+        // Notify the sender that the message was rejected
         const senderSocketId = userSocketMap.get(sender);
         if (senderSocketId) {
           io.to(senderSocketId).emit("messageRejected", {
@@ -133,12 +134,10 @@ const setupSocket = (server) => {
         return;
       }
 
-      // Se l'utente è un membro valido, procedi con la creazione e l'invio del messaggio
-
-      // Create the message in the database
+      // Creating a new message in the database
       const createdMessage = await Message.create({
         sender,
-        recipient: null,
+        recipient: null, // Group messages have no recipient, they are meant for a group
         content,
         messageType,
         timestamp: Date.now(),
@@ -150,7 +149,7 @@ const setupSocket = (server) => {
         .populate("sender", "id email userName image avatar")
         .exec();
 
-      // Update the group with the new message
+      // Adding the new message ID to the group's messages array and retrieving the updated group
       const updatedGroup = await Group.findByIdAndUpdate(
         groupId,
         { $push: { messages: messageData._id } },
@@ -159,11 +158,11 @@ const setupSocket = (server) => {
 
       const finalData = { ...messageData._doc, groupId: updatedGroup._id };
 
-      // Track which members are online vs offline
+      // Tracking which members are online vs offline
       const onlineMembers = new Set();
       const offlineMembers = [];
 
-      // Crea un set di tutti gli ID membri per verificare se l'admin è già nei membri
+      // Creating a set of member IDs for quick lookup
       const memberIds = new Set(
         updatedGroup.members.map((m) => m._id.toString())
       );
@@ -180,7 +179,7 @@ const setupSocket = (server) => {
         }
       });
 
-      // Handle admin specially ONLY if not already included in members
+      // Ensuring that if the admin is not in the members list, he still receives the message
       const adminId = updatedGroup.admin._id.toString();
       if (!memberIds.has(adminId)) {
         const adminSocketId = userSocketMap.get(adminId);
@@ -242,25 +241,37 @@ const setupSocket = (server) => {
           );
         }
 
+        /* Handler that ensures the unread counts are in sync between the client and server
+         * The client sends its current unread counts to the server, which then compares them
+         * with the server's values. The higher value is saved to the database and sent back
+         * to the client for consistency.
+         * This approach solves situations like:
+         * - User receives messages on the phone while he's on the web app
+         * - User loses connections and receives messages while offline
+         * - If, for some reason, the count is lost in any direction
+         */
         socket.on("syncUnreadCounts", async (data) => {
           try {
             const user = await User.findById(userId);
 
             if (user) {
-              // Merge server counts with incoming client counts
+              // Extract unread counts from the database or use an empty object
               const serverPrivateCounts = user.unreadMessagesCount || {};
               const serverGroupCounts = user.unreadGroupMessagesCount || {};
 
+              // Objects where the client values overwrite the server values
               const mergedPrivateCounts = {
                 ...serverPrivateCounts,
                 ...data.unreadMessagesCount,
               };
+
               const mergedGroupCounts = {
                 ...serverGroupCounts,
                 ...data.unreadGroupMessagesCount,
               };
 
-              // Take the maximum count for each sender/group
+              // Iterate for every userID and compare the server and client values
+              // The higher value is saved to the database
               Object.keys(data.unreadMessagesCount).forEach((key) => {
                 mergedPrivateCounts[key] = Math.max(
                   serverPrivateCounts[key] || 0,
@@ -295,6 +306,11 @@ const setupSocket = (server) => {
           }
         });
 
+        /* This handler is made for a fresh device with no local storage to sync
+         * The client sends a request to fetch the unread counts from the server
+         * The server responds with the current unread counts for the user
+         * This is useful for new devices.
+         */
         socket.on("fetchUnreadCounts", async (requestedUserId) => {
           try {
             const user = await User.findById(requestedUserId);
@@ -331,22 +347,29 @@ const setupSocket = (server) => {
         });
 
         socket.on("newGroup", async (group) => {
+          // Retrieving from the database the group with its ID
           const populatedGroup = await Group.findById(group._id)
             .populate("members", "id email userName image avatar")
             .populate("admin", "id email userName image avatar");
 
+          // Iterate through every member of the group
           populatedGroup.members.forEach((member) => {
+            // Search for the socked ID of each member
             const memberSocketId = userSocketMap.get(member._id.toString());
+            // If he's online, emit the groupCreated event to him
             if (memberSocketId) {
               io.to(memberSocketId).emit("groupCreated", populatedGroup);
             }
           });
         });
 
+        // Handlers for the sendMessage and sendGroupMessage events
         socket.on("sendMessage", sendMessage);
         socket.on("sendGroupMessage", sendGroupMessage);
 
+        // Handler for eliminating the red number of unread messages in private chats
         socket.on("resetUnreadCount", async (data) => {
+          // Extract the senderId from the data object
           const { senderId } = data;
           try {
             const user = await User.findById(userId);
@@ -377,8 +400,9 @@ const setupSocket = (server) => {
           }
         });
 
+        // Handler for eliminating the red number of unread messages in group chats
         socket.on("resetGroupUnreadCount", async (data) => {
-          const { groupId } = data; // Correctly destructure groupId
+          const { groupId } = data;
           try {
             const user = await User.findById(userId);
             if (user && user.unreadGroupMessagesCount) {
@@ -414,22 +438,21 @@ const setupSocket = (server) => {
           const { groupId, memberId, adminId } = data;
 
           try {
-            // Recupera i dettagli del gruppo
+            // Retrieving the group's information
             const group = await Group.findById(groupId)
               .populate("members", "userName avatar image isOnline")
               .populate("admin", "userName avatar image isOnline");
 
             if (!group) return;
 
-            // Aggiornare l'utente rimosso, aggiungendo il gruppo ai suoi removedGroups
+            // Add the group ID to the user's list of removed groups
             await User.findByIdAndUpdate(memberId, {
               $push: { removedGroups: { groupId } },
             });
 
-            // Notifica all'utente rimosso
+            // Notify the removed member
             const removedMemberSocketId = userSocketMap.get(memberId);
             if (removedMemberSocketId) {
-              // Invia il gruppo con isActive: false
               const inactiveGroup = {
                 ...group.toObject(),
                 isActive: false,
@@ -443,8 +466,6 @@ const setupSocket = (server) => {
                 removedBy: adminId,
               });
             }
-
-            // Notifiche per gli altri membri...
           } catch (error) {
             console.error("Error in memberRemoved event:", error);
           }
@@ -454,24 +475,25 @@ const setupSocket = (server) => {
           const { groupId, userId, wasAdmin, newAdminId } = data;
 
           try {
+            // Delete (pull) the group from the user's list of removed groups
             await User.updateOne(
               { _id: userId },
               { $pull: { removedGroups: { groupId } } }
             );
 
-            // Quando un utente esce, aggiungi il gruppo alla sua lista dei gruppi rimossi
+            // Update the user's document to reflect that they left the group
             await User.findByIdAndUpdate(userId, {
               $push: { removedGroups: { groupId, left: true } },
             });
 
-            // Recupera informazioni aggiornate sul gruppo
+            // Retrieve the updated group details
             const group = await Group.findById(groupId)
               .populate("members", "userName avatar image isOnline")
               .populate("admin", "userName avatar image isOnline");
 
             if (!group) return;
 
-            // Notifica all'utente che è uscito (con un flag che indica l'uscita volontaria)
+            // Notify the user who left the group
             const userSocketId = userSocketMap.get(userId);
             if (userSocketId) {
               const inactiveGroup = {
@@ -490,14 +512,18 @@ const setupSocket = (server) => {
               });
             }
 
-            // Notifica agli altri membri del gruppo
+            // Notify the other members of the group
             const memberSocketIds = group.members
+              // Get all the member IDs
               .map((member) => member._id.toString())
+              // Remove the user who left
               .filter((id) => id !== userId)
+              // Get the socket ID of each member
               .map((id) => userSocketMap.get(id))
-              .filter((id) => id); // Filtra valori null/undefined
+              // Filter the disconnected sockets
+              .filter((id) => id);
 
-            // Aggiungi l'admin se non è già incluso
+            // Include the admin
             if (
               group.admin &&
               group.admin._id.toString() !== userId &&
@@ -511,7 +537,6 @@ const setupSocket = (server) => {
               if (adminSocketId) memberSocketIds.push(adminSocketId);
             }
 
-            // Invia notifica a tutti i membri
             for (const socketId of memberSocketIds) {
               io.to(socketId).emit("userLeftGroup", {
                 groupId,
@@ -526,23 +551,38 @@ const setupSocket = (server) => {
           }
         });
 
-        socket.on("groupDeleted", async (groupId) => {
-          // Trova tutti i membri del gruppo
-          const group = await Group.findById(groupId).populate("members admin");
-          if (group) {
-            [...group.members, group.admin].forEach((member) => {
-              const memberSocket = userSocketMap.get(member._id.toString());
-              if (memberSocket) {
-                io.to(memberSocket).emit("groupDeleted", { groupId });
-              }
-            });
+        socket.on("groupDeleted", async (data) => {
+          const { groupId, isRemoved } = data;
+
+          try {
+            // Get the group with updated details
+            const group = await Group.findById(groupId).populate(
+              "members admin"
+            );
+
+            if (group) {
+              // Notify all members
+              [...group.members, group.admin].forEach((member) => {
+                const memberSocket = userSocketMap.get(member._id.toString());
+                if (memberSocket) {
+                  io.to(memberSocket).emit("groupDeleted", {
+                    groupId,
+                    isRemoved,
+                    isDeleted: true,
+                    deletedAt: group.deletedAt,
+                  });
+                }
+              });
+            }
+          } catch (error) {
+            console.error("Error processing group deletion:", error);
           }
         });
 
         socket.on("groupAdminChanged", async (data) => {
           const { groupId, newAdminId } = data;
 
-          // Notifica a tutti i membri del gruppo
+          // Notify all members of the group about the admin changed
           const group = await Group.findById(groupId).populate("members admin");
           if (group) {
             [...group.members, group.admin].forEach((member) => {
@@ -562,6 +602,7 @@ const setupSocket = (server) => {
           const { groupId, memberIds } = data;
 
           try {
+            // Ensure that the user is not considered as removed from the group
             for (const memberId of memberIds) {
               await User.updateOne(
                 { _id: memberId },
@@ -569,7 +610,7 @@ const setupSocket = (server) => {
               );
             }
 
-            // Recupera i dettagli completi del gruppo
+            // Retrieve the updated group details
             const group = await Group.findById(groupId)
               .populate("members", "userName avatar image isOnline")
               .populate("admin", "userName avatar image isOnline");
@@ -578,11 +619,10 @@ const setupSocket = (server) => {
 
             console.log(`Sending addedToGroup event to members: ${memberIds}`);
 
-            // Notifica a ciascun nuovo membro che è stato aggiunto al gruppo
+            // Notify the members
             for (const memberId of memberIds) {
               const memberSocketId = userSocketMap.get(memberId);
               if (memberSocketId) {
-                // Assicurati che isActive sia true
                 const activeGroup = {
                   ...group.toObject(),
                   isActive: true,

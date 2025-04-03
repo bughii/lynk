@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Group schema
 const GroupSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -31,6 +32,17 @@ const GroupSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now(),
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+  deletedAt: {
+    type: Date,
+  },
+  deletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Users",
   },
 });
 

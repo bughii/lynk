@@ -39,7 +39,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
 
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { friends, sendRequest } = useFriendStore();
+  const { friends, fetchFriends, sendRequest } = useFriendStore();
   const { closeChat, setSelectedChatType, setSelectedChatData } =
     useChatStore();
 
@@ -51,13 +51,15 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
   const [confirmAction, setConfirmAction] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const [showAddMembersDialog, setShowAddMembersDialog] = useState(false);
   const [showMediaDialog, setShowMediaDialog] = useState(false);
   const [isUserRemoved, setIsUserRemoved] = useState(false);
   const [isUserLeft, setIsUserLeft] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [friendsMap, setFriendsMap] = useState({});
 
-  // Funzione per caricare i dettagli completi del gruppo
+  // Function to load the complete group details
   const loadGroupDetails = async () => {
     if (!group || !group._id) return;
 
@@ -71,16 +73,16 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
       if (response.data && response.data.group) {
         const fullGroup = response.data.group;
 
-        // Verificare se l'utente corrente è l'admin del gruppo
+        // Check if current user is the admin of the group
         const isUserAdmin = fullGroup.admin._id === user._id;
         setIsAdmin(isUserAdmin);
 
-        // Preparare la lista dei membri
+        // Prepare the members list
         let membersList = Array.isArray(fullGroup.members)
           ? [...fullGroup.members]
           : [];
 
-        // Assicurarsi che l'admin sia incluso nella lista
+        // Make sure the admin is included in the list
         if (
           fullGroup.admin &&
           !membersList.some((m) => m._id === fullGroup.admin._id)
@@ -88,7 +90,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
           membersList.push(fullGroup.admin);
         }
 
-        // Imposta lo stato del gruppo per l'utente corrente
+        // Set group state for the current user
         setIsUserRemoved(!!fullGroup.userRemoved);
         setIsUserLeft(!!fullGroup.userLeft);
         setIsActive(!!fullGroup.isActive);
@@ -103,28 +105,59 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
     }
   };
 
+  // Load friends data when dialog opens
+  useEffect(() => {
+    if (open) {
+      setIsLoadingFriends(true);
+      fetchFriends()
+        .then(() => {
+          setIsLoadingFriends(false);
+        })
+        .catch((error) => {
+          console.error("Error fetching friends:", error);
+          setIsLoadingFriends(false);
+        });
+    }
+  }, [open, fetchFriends]);
+
+  // Create a map of friend IDs for faster lookup
+  useEffect(() => {
+    if (friends && Array.isArray(friends)) {
+      const map = {};
+      friends.forEach((friend) => {
+        // Handle different friend object structures
+        const friendId = friend._id || (friend.user && friend.user._id);
+        if (friendId) {
+          map[friendId] = true;
+        }
+      });
+      setFriendsMap(map);
+      console.log("Friends map updated:", map);
+    }
+  }, [friends]);
+
   useEffect(() => {
     if (open && group) {
       loadGroupDetails();
     }
   }, [group, open]);
 
-  // Effetto per ordinare i membri in modo che l'utente corrente sia primo e l'admin sia evidenziato
+  // Sort members - current user first, highlight admin
   useEffect(() => {
     if (members.length > 0) {
-      // Crea una copia della lista membri che possiamo riordinare
+      // Create a copy of the members list we can reorder
       let orderedMembers = [...members];
 
-      // Prima ordinamento: metti l'utente corrente all'inizio
+      // First sort: put current user first
       orderedMembers.sort((a, b) => {
         if (a._id === user._id) return -1;
         if (b._id === user._id) return 1;
         return 0;
       });
 
-      // Secondo ordinamento: evidenzia amministratore
-      // Non spostiamo l'admin in cima se è diverso dall'utente corrente
-      // Ma aggiungiamo una proprietà per identificarlo
+      // Second sort: highlight admin
+      // Don't move admin to top if different from current user
+      // But add a property to identify them
       orderedMembers = orderedMembers.map((member) => ({
         ...member,
         isAdmin: member._id === group.admin?._id,
@@ -135,23 +168,35 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
     }
   }, [members, user, group]);
 
-  // Funzione robusta per verificare se un membro è amico
+  // Robust function to check if a member is a friend
   const isFriend = (memberId) => {
+    if (!memberId) return false;
+
+    // Convert to string for consistent comparison
+    const memberIdStr = String(memberId);
+
+    // Check in the friendsMap for fast lookup
+    if (friendsMap[memberIdStr]) {
+      return true;
+    }
+
+    // Fallback to the slower check through the friends array
     if (!friends || !Array.isArray(friends) || friends.length === 0) {
       return false;
     }
+
     return friends.some((friend) => {
-      // Se l'oggetto friend contiene il campo "user", usalo per ottenere l'ID reale dell'amico
+      // Handle different friend object structures
       const friendId = friend.user ? friend.user._id : friend._id;
-      return String(friendId) === String(memberId);
+      return String(friendId) === memberIdStr;
     });
   };
 
   const handleStartChat = (member) => {
-    // Chiudere il dialog
+    // Close the dialog
     onOpenChange(false);
 
-    // Impostare la chat privata con il membro selezionato
+    // Set private chat with selected member
     setSelectedChatType("friend");
     setSelectedChatData(member);
   };
@@ -185,17 +230,17 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
   };
 
   const handleLeaveGroup = () => {
-    // Non permettere all'utente di uscire se è già stato rimosso o ha già lasciato il gruppo
+    // Don't allow user to leave if already removed or left the group
     if (isUserRemoved || isUserLeft || !isActive) {
       toast.error(t("chat.cannotSendMessageInactiveGroup"));
       return;
     }
 
     if (isAdmin) {
-      // Se l'utente è admin, deve prima selezionare un nuovo admin
+      // If user is admin, they must first select a new admin
       setShowNewAdminDialog(true);
     } else {
-      // Altrimenti, mostra la finestra di conferma
+      // Otherwise, show confirmation dialog
       setConfirmAction("leaveGroup");
       setShowConfirmDialog(true);
     }
@@ -216,7 +261,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
               memberId: selectedMember._id,
             });
 
-            // Aggiornare la lista membri
+            // Update members list
             setMembers(members.filter((m) => m._id !== selectedMember._id));
             if (socket) {
               socket.emit("memberRemoved", {
@@ -235,11 +280,11 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
             groupId: group._id,
           });
 
-          // Chiudere la chat e tornare alla vista principale
+          // Close chat and return to main view
           closeChat();
           onOpenChange(false);
 
-          // Emettere un evento socket per notificare che l'utente è uscito
+          // Emit socket event to notify user has left
           if (socket) {
             socket.emit("leftGroup", {
               groupId: group._id,
@@ -247,7 +292,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
             });
           }
 
-          // Aggiorna immediatamente lo stato locale
+          // Update local state immediately
           const { updateGroup } = useChatStore.getState();
           updateGroup(group._id, {
             isActive: false,
@@ -259,12 +304,43 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
           break;
 
         case "deleteGroup":
-          await apiClient.delete(`/api/groups/delete-group/${group._id}`);
+          try {
+            const response = await apiClient.delete(
+              `/api/groups/delete-group/${group._id}`
+            );
 
-          // Chiudere la chat e tornare alla vista principale
-          closeChat();
-          onOpenChange(false);
-          toast.success(t("groupInfo.deletedGroup"));
+            if (response.data && response.data.group) {
+              // Update the group status locally
+              const { updateGroup } = useChatStore.getState();
+              updateGroup(group._id, {
+                isDeleted: true,
+                deletedAt: response.data.group.deletedAt,
+              });
+
+              // Emit socket event
+              if (socket) {
+                socket.emit("groupDeleted", {
+                  groupId: group._id,
+                  isRemoved: false, // Indicate we're not removing it
+                });
+              }
+
+              // Add system message to chat
+              const { addSystemMessage } = useChatStore.getState();
+              addSystemMessage({
+                groupId: group._id,
+                content: t("notifications.groupDeletedByAdmin"),
+                timestamp: new Date(),
+              });
+
+              // Close the dialog but keep the chat open
+              onOpenChange(false);
+              toast.success(t("groupInfo.deletedGroup"));
+            }
+          } catch (error) {
+            console.error("Error deleting group:", error);
+            toast.error(t("groupInfo.actionError"));
+          }
           break;
       }
     } catch (error) {
@@ -277,21 +353,21 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
 
   const handleNewAdminSelected = async (newAdminId) => {
     try {
-      // Chiamata API per assegnare il nuovo admin
+      // API call to assign new admin
       await apiClient.post("/api/groups/change-admin", {
         groupId: group._id,
         newAdminId,
       });
 
-      // Chiudere il dialog di selezione admin
+      // Close admin selection dialog
       setShowNewAdminDialog(false);
 
-      // Ora possiamo uscire dal gruppo
+      // Now we can leave the group
       await apiClient.post("/api/groups/leave-group", {
         groupId: group._id,
       });
 
-      // Emettere un evento socket per notificare che l'admin è uscito
+      // Emit socket event to notify admin has left
       if (socket) {
         socket.emit("leftGroup", {
           groupId: group._id,
@@ -301,7 +377,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
         });
       }
 
-      // Chiudere la chat e tornare alla vista principale
+      // Close chat and return to main view
       closeChat();
       onOpenChange(false);
       toast.success(t("groupInfo.adminChangedAndLeft"));
@@ -314,24 +390,24 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
   const handleAddMembers = (selectedFriends) => {
     if (selectedFriends.length === 0) return;
 
-    // Chiamata API per aggiungere membri al gruppo
+    // API call to add members to group
     apiClient
       .post("/api/groups/add-members", {
         groupId: group._id,
         memberIds: selectedFriends.map((friend) => friend._id),
       })
       .then((response) => {
-        // Aggiorna la lista dei membri includendo i nuovi membri
+        // Update members list with new members
         const newMembers = selectedFriends.map((friend) => ({
           ...friend,
           isAdmin: false,
           isCurrentUser: false,
         }));
 
-        // Aggiorna lo stato locale dei membri
+        // Update local members state
         setMembers((prevMembers) => [...prevMembers, ...newMembers]);
 
-        // Emetti evento socket per notificare i nuovi membri
+        // Emit socket event to notify new members
         if (socket) {
           socket.emit("membersAdded", {
             groupId: group._id,
@@ -348,7 +424,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
       });
   };
 
-  // Renderizza un messaggio di avviso se l'utente è stato rimosso o ha lasciato il gruppo
+  // Render warning message if user is removed or left the group
   const renderGroupStatusWarning = () => {
     if (isUserRemoved) {
       return (
@@ -387,10 +463,10 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
           </DialogHeader>
 
           <div className="flex flex-col flex-1 overflow-hidden p-4">
-            {/* Avviso stato gruppo per utente */}
+            {/* Group status warning for user */}
             {renderGroupStatusWarning()}
 
-            {/* Media button - solo se l'utente può ancora interagire col gruppo */}
+            {/* Media button - only if user can still interact with group */}
             {isActive && (
               <Button
                 onClick={() => setShowMediaDialog(true)}
@@ -421,7 +497,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
             </div>
 
             <ScrollArea className="flex-grow overflow-auto">
-              {isLoading ? (
+              {isLoading || isLoadingFriends ? (
                 <div className="py-4 text-center text-sm text-gray-500">
                   {t("common.loading")}...
                 </div>
@@ -477,15 +553,18 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                           </div>
                         </div>
 
-                        <div className="flex">
+                        <div className="flex space-x-1">
                           {/* Admin-only: Remove member button */}
                           {!isCurrentUser && isAdmin && isActive && (
                             <button
-                              onClick={() => handleRemoveMember(member)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveMember(member);
+                              }}
                               className="p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-all"
                               title={t("groupInfo.removeMember")}
                             >
-                              <FaUserMinus size={14} />
+                              <FaUserMinus size={15} />
                             </button>
                           )}
 
@@ -493,21 +572,29 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                           {!isCurrentUser && (
                             <>
                               {memberIsFriend ? (
+                                // Icon for starting chat with friends
                                 <button
-                                  onClick={() => handleStartChat(member)}
-                                  className="p-2 text-green-500 hover:text-green-400 hover:bg-green-500/10 rounded-full transition-all"
-                                  title={t("groupInfo.startChat")}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartChat(member);
+                                  }}
+                                  className="p-2 bg-green-500/10 text-green-500 hover:text-green-400 hover:bg-green-500/20 rounded-full transition-all"
+                                  title={t("common.startChat")}
                                 >
-                                  <FaComment size={14} />
+                                  <FaComment size={15} />
                                 </button>
                               ) : (
+                                // Icon for adding non-friends
                                 isActive && (
                                   <button
-                                    onClick={() => handleFriendRequest(member)}
-                                    className="p-2 text-blue-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-all"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleFriendRequest(member);
+                                    }}
+                                    className="p-2 bg-blue-500/10 text-blue-500 hover:text-blue-400 hover:bg-blue-500/20 rounded-full transition-all"
                                     title={t("groupInfo.addFriend")}
                                   >
-                                    <FaUserPlus size={14} />
+                                    <FaUserPlus size={15} />
                                   </button>
                                 )
                               )}
@@ -557,7 +644,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog per selezionare il nuovo admin */}
+      {/* Dialog to select new admin */}
       {showNewAdminDialog && (
         <NewAdminDialog
           open={showNewAdminDialog}
@@ -567,7 +654,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
         />
       )}
 
-      {/* Dialog di conferma per le azioni */}
+      {/* Confirmation dialog for actions */}
       {showConfirmDialog && (
         <ConfirmDialog
           open={showConfirmDialog}
@@ -578,7 +665,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
         />
       )}
 
-      {/* Dialog per aggiungere nuovi membri */}
+      {/* Dialog to add new members */}
       {showAddMembersDialog && (
         <AddMembersDialog
           open={showAddMembersDialog}
@@ -588,7 +675,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
         />
       )}
 
-      {/* Dialog per visualizzare i media del gruppo */}
+      {/* Dialog to view group media */}
       {showMediaDialog && (
         <GroupMediaDialog
           open={showMediaDialog}
@@ -597,7 +684,7 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
         />
       )}
 
-      {/* Dialog di conferma per l'invio di una richiesta di amicizia */}
+      {/* Dialog to confirm sending a friend request */}
       <Dialog
         open={showFriendRequestDialog}
         onOpenChange={setShowFriendRequestDialog}

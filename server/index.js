@@ -9,6 +9,7 @@ import setupSocket from "./socket.js";
 import messagesRoutes from "./routes/messagesRoutes.js";
 import friendsRoutes from "./routes/friendsRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
+import { User } from "./models/UserModel.js";
 
 // Dotenv config
 dotenv.config();
@@ -44,7 +45,20 @@ const server = app.listen(port, () => {
 
 setupSocket(server);
 
+// Reset the online status of all users when the server starts
+async function resetAllUsersOnlineStatus() {
+  try {
+    const result = await User.updateMany({}, { isOnline: false });
+    console.log("Stati resettati");
+  } catch (error) {
+    console.error("Errore nel reset degli stati online:", error);
+  }
+}
+
 mongoose
   .connect(databaseURL)
-  .then(() => console.log("Connesso al database"))
+  .then(() => {
+    console.log("Connesso al database");
+    resetAllUsersOnlineStatus();
+  })
   .catch((error) => console.log(error));

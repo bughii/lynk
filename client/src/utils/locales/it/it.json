@@ -242,6 +242,7 @@
     "confirmActionDescription": "Sei sicuro di voler procedere con questa azione?"
   },
   "notifications": {
+    "groupDeletedByAdmin": "Questo gruppo è stato eliminato dall'amministratore",
     "addedToGroup": "Sei stato aggiunto al gruppo: {groupName}",
     "membersAddedToGroup": "Nuovi membri sono stati aggiunti al gruppo: {groupName}",
     "removedFromGroup": "Sei stato rimosso dal gruppo: {groupName}",
@@ -252,6 +253,8 @@
     "userLeftGroupAndYouAreNewAdmin": "{userName} ha lasciato il gruppo e ora sei l'amministratore"
   },
   "chat": {
+    "groupDeleted": "Questo gruppo è stato eliminato e non è più disponibile",
+    "cannotSendMessageDeletedGroup": "Impossibile inviare il messaggio: questo gruppo è stato eliminato",
     "removedFromGroup": "Sei stato rimosso da questo gruppo e non puoi inviare messaggi",
     "leftGroup": "Hai lasciato questo gruppo e non puoi inviare messaggi",
     "cannotSendMessageRemovedFromGroup": "Impossibile inviare il messaggio: non sei più un membro di questo gruppo",

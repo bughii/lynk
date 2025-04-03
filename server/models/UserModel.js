@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { Schema } from "mongoose";
 
-// Definisco lo schema dell'utente
+// User schema
 const userSchema = new Schema(
   {
     email: {

@@ -249,9 +249,12 @@
     "youLeftGroup": "You left group: {groupName}",
     "youLeftGroupAsAdmin": "You left this group and transferred admin privileges",
     "userLeftGroup": "{userName} left the group",
+    "groupDeletedByAdmin": "This group has been deleted by the admin",
     "userLeftGroupAndYouAreNewAdmin": "{userName} left the group and you are now the admin"
   },
   "chat": {
+    "groupDeleted": "This group has been deleted by the admin. No more messages can be sent.",
+    "cannotSendMessageDeletedGroup": "Cannot send message: this group has been deleted",
     "removedFromGroup": "You have been removed from this group and cannot send messages",
     "leftGroup": "You left this group and cannot send messages",
     "cannotSendMessageRemovedFromGroup": "Cannot send message: you are no longer a member of this group",

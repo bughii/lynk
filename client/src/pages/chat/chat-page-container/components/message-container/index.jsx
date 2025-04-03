@@ -79,10 +79,8 @@ function MessageContainer() {
   }, [selectedChatMessages, selectedChatData]);
 
   const renderSystemMessage = (message) => (
-    <div className="text-center my-4">
-      <div className="inline-block bg-red-500/20 text-red-400 px-4 py-2 rounded-md text-sm">
-        {message.content}
-      </div>
+    <div className="text-center my-6">
+      <p className="text-red-400 font-medium">{message.content}</p>
     </div>
   );
 

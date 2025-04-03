@@ -38,9 +38,11 @@ export const createGroup = async (req, res) => {
 
 export const getUserGroups = async (req, res) => {
   try {
+    // Convert the userId in a object ObjectId
+    // This is necessary to query the database
     const userId = new mongoose.Types.ObjectId(req.userId);
 
-    // Trova i gruppi in cui l'utente è membro o admin
+    // Search in the database the groups where the user is the admin or a member
     const activeGroups = await Group.find({
       $or: [{ admin: userId }, { members: userId }],
     })
@@ -48,10 +50,10 @@ export const getUserGroups = async (req, res) => {
       .populate("members", "id email username image avatar userName")
       .populate("admin", "id email username image avatar userName");
 
-    // Trova le informazioni dell'utente per controllare i gruppi da cui è stato rimosso
+    // Retrieve the user's document from the database
     const user = await User.findById(userId);
 
-    // Se l'utente non ha gruppi rimossi, restituisci solo quelli attivi
+    // If the user has no removedGroups, return the active groups
     if (!user.removedGroups || user.removedGroups.length === 0) {
       const groupsWithActiveFlag = activeGroups.map((group) => ({
         ...group.toObject(),
@@ -63,28 +65,30 @@ export const getUserGroups = async (req, res) => {
       return res.status(200).json({ groups: groupsWithActiveFlag });
     }
 
-    // Crea un array con gli ID dei gruppi rimossi
+    // Extracting the IDs of the removed groups in the user's document
     const removedGroupIds = user.removedGroups.map((item) =>
       item.groupId.toString()
     );
 
-    // Crea una mappa con le informazioni dettagliate per ogni gruppo rimosso
+    // Creating a map with the group ID as key and the left flag as value
     const removedGroupsInfo = {};
     user.removedGroups.forEach((item) => {
       if (item.groupId) {
         removedGroupsInfo[item.groupId.toString()] = {
-          left: !!item.left, // Converti in booleano esplicito
+          left: !!item.left,
         };
       }
     });
 
-    // Filtra per escludere i gruppi che sono sia attivi che rimossi
+    // Creating an array with the IDs of the active groups
     const activeGroupIds = activeGroups.map((group) => group._id.toString());
+    // Filtering removedGroupIds by excluding the IDs that are in the activeGroupIds array
+    // This ensures that if a user has been removed and then added back to a group, the group will be considered active
     const filteredRemovedGroupIds = removedGroupIds.filter(
       (id) => !activeGroupIds.includes(id)
     );
 
-    // Se non ci sono gruppi rimossi dopo il filtraggio, restituisci solo quelli attivi
+    // If there are no removed groups after filtering, return the active groups
     if (filteredRemovedGroupIds.length === 0) {
       const groupsWithActiveFlag = activeGroups.map((group) => ({
         ...group.toObject(),
@@ -96,14 +100,14 @@ export const getUserGroups = async (req, res) => {
       return res.status(200).json({ groups: groupsWithActiveFlag });
     }
 
-    // Altrimenti, trova i dettagli dei gruppi rimossi
+    // Otherwise, find the details of the removed groups
     const removedGroups = await Group.find({
       _id: { $in: filteredRemovedGroupIds },
     })
       .populate("members", "id email username image avatar userName")
       .populate("admin", "id email username image avatar userName");
 
-    // Aggiungi i flag corretti ad ogni gruppo attivo
+    // Add the correct flags to each active group
     const formattedActiveGroups = activeGroups.map((group) => ({
       ...group.toObject(),
       isActive: true,
@@ -111,18 +115,18 @@ export const getUserGroups = async (req, res) => {
       userLeft: false,
     }));
 
-    // Aggiungi i flag corretti ad ogni gruppo rimosso
+    // Add the correct flags to each removed group
     const formattedRemovedGroups = removedGroups.map((group) => {
       const groupInfo = removedGroupsInfo[group._id.toString()] || {};
       return {
         ...group.toObject(),
         isActive: false,
-        userRemoved: !groupInfo.left, // Se non è left, è removed
-        userLeft: !!groupInfo.left, // Converti in booleano esplicito
+        userRemoved: !groupInfo.left, // If left is false, user was removed
+        userLeft: !!groupInfo.left,
       };
     });
 
-    // Combina i due array e restituisci il risultato
+    // Combine the active and removed groups and return the result to the client
     const allGroups = [...formattedActiveGroups, ...formattedRemovedGroups];
 
     return res.status(200).json({ groups: allGroups });
@@ -150,40 +154,40 @@ export const getGroupMessages = async (req, res) => {
   } catch (error) {}
 };
 
-// Rimuovere un membro dal gruppo
 export const removeMember = async (req, res) => {
   try {
     const { groupId, memberId } = req.body;
     const userId = req.userId;
 
-    // Verificare che il gruppo esista
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Verificare che l'utente corrente sia l'admin del gruppo
+    // Verify that the current user is the admin of the group
     if (group.admin.toString() !== userId) {
       return res.status(403).json({ message: "Only admin can remove members" });
     }
 
-    // Verificare che l'admin non stia cercando di rimuovere se stesso
+    // Verify that the admin is not trying to remove himself
     if (memberId === userId) {
       return res.status(400).json({
         message: "Admin cannot remove themselves using this endpoint",
       });
     }
 
-    // Rimuovere il membro dal gruppo
+    // Remove the member from the group
+    // pull removed memberUd from the members array
     await Group.findByIdAndUpdate(groupId, {
       $pull: { members: memberId },
     });
 
+    // Mark the group as removed in the user's document
     await User.findByIdAndUpdate(memberId, {
       $push: { removedGroups: { groupId } },
     });
 
-    // Recupera il gruppo aggiornato
+    // Return the updated group details
     const updatedGroup = await Group.findById(groupId)
       .populate("members", "userName avatar image")
       .populate("admin", "userName avatar image");
@@ -198,32 +202,31 @@ export const removeMember = async (req, res) => {
   }
 };
 
-// Uscire dal gruppo
 export const leaveGroup = async (req, res) => {
   try {
     const { groupId } = req.body;
     const userId = req.userId;
 
-    // Verificare che il gruppo esista
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Se l'utente è l'admin, non può semplicemente uscire
-    // (deve prima cambiare admin o eliminare il gruppo)
+    // If the user is the admin, they cannot leave the group
+    // They must assign a new admin before leaving
     if (group.admin.toString() === userId) {
       return res
         .status(400)
         .json({ message: "Admin must assign new admin before leaving" });
     }
 
-    // Rimuovere l'utente dai membri del gruppo
+    // Remove the user from the group
     await Group.findByIdAndUpdate(groupId, {
       $pull: { members: userId },
     });
 
-    // Aggiungere il gruppo alla lista dei gruppi rimossi dell'utente, ma con un flag left=true
+    // Add the group to the user's removedGroups list
+    // with the left flag set to true, he left voluntarily
     await User.findByIdAndUpdate(userId, {
       $push: { removedGroups: { groupId, left: true } },
     });
@@ -235,33 +238,31 @@ export const leaveGroup = async (req, res) => {
   }
 };
 
-// Cambiare l'admin del gruppo
 export const changeAdmin = async (req, res) => {
   try {
     const { groupId, newAdminId } = req.body;
     const userId = req.userId;
 
-    // Verificare che il gruppo esista
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Verificare che l'utente corrente sia l'admin del gruppo
+    // Verify that the current user is the admin of the group
     if (group.admin.toString() !== userId) {
       return res
         .status(403)
         .json({ message: "Only current admin can change admin" });
     }
 
-    // Verificare che il nuovo admin sia un membro del gruppo
+    // Verify that the new admin is a member of the group
     if (!group.members.includes(newAdminId)) {
       return res
         .status(400)
         .json({ message: "New admin must be a member of the group" });
     }
 
-    // Aggiornare l'admin del gruppo
+    // Update the admin with the new ID newAdminId and save
     group.admin = newAdminId;
     await group.save();
 
@@ -272,29 +273,52 @@ export const changeAdmin = async (req, res) => {
   }
 };
 
-// Eliminare il gruppo
 export const deleteGroup = async (req, res) => {
   try {
     const { groupId } = req.params;
     const userId = req.userId;
 
-    // Verificare che il gruppo esista
+    // Verify the group exists
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Verificare che l'utente corrente sia l'admin del gruppo
+    // Verify current user is the admin
     if (group.admin.toString() !== userId) {
       return res
         .status(403)
         .json({ message: "Only admin can delete the group" });
     }
 
-    // Eliminare il gruppo
-    await Group.findByIdAndDelete(groupId);
+    // Mark as deleted instead of removing it permanently
+    group.isDeleted = true;
+    group.deletedAt = new Date();
+    group.deletedBy = userId;
 
-    return res.status(200).json({ message: "Group deleted successfully" });
+    // Create a valid system message about the deletion
+    const systemMessage = new Message({
+      sender: userId, // Admin as sender
+      messageType: "text", // "text" type
+      content: "This group has been deleted by the admin.",
+      timestamp: new Date(),
+      isSystem: true, // This is a system message
+    });
+
+    await systemMessage.save();
+
+    // Add the system message to the group's messages
+    group.messages.push(systemMessage._id);
+    await group.save();
+
+    return res.status(200).json({
+      message: "Group deleted successfully",
+      group: {
+        _id: group._id,
+        isDeleted: true,
+        deletedAt: group.deletedAt,
+      },
+    });
   } catch (error) {
     console.log({ error });
     return res.status(500).json({ message: "Internal server error" });
@@ -306,7 +330,7 @@ export const getGroupDetails = async (req, res) => {
     const { groupId } = req.params;
     const userId = req.userId;
 
-    // Trova il gruppo e popola tutti i riferimenti necessari
+    // Find the group and load the members and admin details
     const group = await Group.findById(groupId)
       .populate("members", "userName email avatar image isOnline")
       .populate("admin", "userName email avatar image isOnline");
@@ -315,13 +339,13 @@ export const getGroupDetails = async (req, res) => {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Verifica che l'utente richiedente sia membro o admin del gruppo
+    // Check if the user is a member or admin of the group
     const isMember = group.members.some(
       (member) => member._id.toString() === userId
     );
     const isAdmin = group.admin._id.toString() === userId;
 
-    // Controlla se l'utente è stato rimosso o ha lasciato il gruppo
+    // Checks if the user has been removed or left the group
     const user = await User.findById(userId);
     const removedGroupEntry =
       user.removedGroups &&
@@ -329,7 +353,7 @@ export const getGroupDetails = async (req, res) => {
         (item) => item.groupId && item.groupId.toString() === groupId
       );
 
-    // Aggiungi i flag allo stato del gruppo
+    // Add the correct flags to the group object
     const groupWithFlags = {
       ...group.toObject(),
       isActive: isMember || isAdmin,
@@ -349,6 +373,7 @@ export const addMembers = async (req, res) => {
     const { groupId, memberIds } = req.body;
     const userId = req.userId;
 
+    // Check if groupId and memberIds are valid
     if (
       !groupId ||
       !memberIds ||
@@ -358,24 +383,24 @@ export const addMembers = async (req, res) => {
       return res.status(400).json({ message: "Invalid request data" });
     }
 
-    // Verificare che il gruppo esista
+    // Check if the group exists
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Verificare che l'utente corrente sia l'admin del gruppo
+    // Check if the current user is the admin of the group
     if (group.admin.toString() !== userId) {
       return res.status(403).json({ message: "Only admin can add members" });
     }
 
-    // Verificare che gli utenti da aggiungere esistano
+    // Check if the users that are being added exist
     const users = await User.find({ _id: { $in: memberIds } });
     if (users.length !== memberIds.length) {
       return res.status(400).json({ message: "One or more users not found" });
     }
 
-    // Filtrare gli utenti che sono già membri del gruppo
+    // Filter out the users that are already members of the group
     const currentMemberIds = group.members.map((member) => member.toString());
     const newMemberIds = memberIds.filter(
       (id) => !currentMemberIds.includes(id)
@@ -385,7 +410,7 @@ export const addMembers = async (req, res) => {
       return res.status(400).json({ message: "All users are already members" });
     }
 
-    // Per ogni nuovo membro, rimuovi il gruppo dalla sua lista removedGroups se presente
+    // For every member, remove the group from the removedGroups list
     for (const memberId of newMemberIds) {
       await User.updateOne(
         { _id: memberId },
@@ -393,11 +418,11 @@ export const addMembers = async (req, res) => {
       );
     }
 
-    // Aggiungere i nuovi membri al gruppo
+    // Add the new members to the group AND SAVE
     group.members.push(...newMemberIds);
     await group.save();
 
-    // Recuperare il gruppo aggiornato con i membri popolati
+    // Return the updated group details
     const updatedGroup = await Group.findById(groupId)
       .populate("members", "userName email avatar image")
       .populate("admin", "userName email avatar image");
@@ -417,25 +442,26 @@ export const getGroupMedia = async (req, res) => {
     const { groupId } = req.params;
     const userId = req.userId;
 
-    // Verifica che il gruppo esista
+    // Check if the group exists
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Verifica che l'utente sia membro o admin del gruppo
+    // Check if the user is a member or admin of the group
     const isMember = group.members.some(
       (member) => member.toString() === userId
     );
     const isAdmin = group.admin.toString() === userId;
 
+    // If he's not, return an error
     if (!isMember && !isAdmin) {
       return res
         .status(403)
         .json({ message: "Not authorized to view this group's media" });
     }
 
-    // Recupera tutti i messaggi con file del gruppo
+    // Retrieve all file messages in the group
     const fileMessages = await Message.find({
       _id: { $in: group.messages },
       messageType: "file",
@@ -443,7 +469,7 @@ export const getGroupMedia = async (req, res) => {
       .populate("sender", "userName avatar image")
       .sort({ timestamp: -1 });
 
-    // Formatta i risultati per la risposta
+    // Format the file messages to only include necessary details
     const files = fileMessages.map((message) => ({
       _id: message._id,
       fileURL: message.fileURL,
@@ -460,7 +486,7 @@ export const getGroupMedia = async (req, res) => {
   }
 };
 
-// Funzione di supporto per determinare il tipo di file
+// Helper function to determin the file type
 function getFileType(fileURL) {
   const extension = fileURL.split(".").pop().toLowerCase();
 
@@ -475,6 +501,7 @@ function getFileType(fileURL) {
   } else if (["zip", "rar", "7z", "tar", "gz"].includes(extension)) {
     return "application/archive";
   } else {
+    // Unknown file type
     return "application/octet-stream";
   }
 }

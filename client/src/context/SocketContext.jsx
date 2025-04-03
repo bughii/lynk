@@ -39,8 +39,6 @@ export const SocketProvider = ({ children }) => {
         query: { userId: user._id }, // sending the user id to the server
       });
 
-      // Events handled by socket server
-
       // When the socket is connected, emit the event to the server to get the unread messages
       newSocket.on("connect", () => {
         const { unreadMessagesCount, unreadGroupMessagesCount } =
@@ -328,9 +326,33 @@ export const SocketProvider = ({ children }) => {
         }
       });
 
-      newSocket.on("groupDeleted", ({ groupId }) => {
-        const { removeGroup } = useChatStore.getState();
-        removeGroup(groupId);
+      newSocket.on("groupDeleted", async ({ groupId }) => {
+        const {
+          updateGroup,
+          selectedChatType,
+          selectedChatData,
+          addSystemMessage,
+        } = useChatStore.getState();
+
+        console.log("Received groupDeleted event for:", groupId);
+
+        // Instead of removing the group, mark it as deleted
+        updateGroup(groupId, {
+          isDeleted: true,
+          deletedAt: new Date(),
+        });
+
+        // Add system message if this is the currently selected group
+        if (selectedChatType === "group" && selectedChatData?._id === groupId) {
+          addSystemMessage({
+            groupId,
+            content: t("notifications.groupDeletedByAdmin"),
+            timestamp: new Date(),
+            isSystem: true,
+          });
+        }
+
+        // Notify the user
         toast.info(t("notifications.groupDeleted"));
       });
 

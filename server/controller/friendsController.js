@@ -52,7 +52,7 @@ export const getReceivedRequests = async (req, res) => {
       status: "pending",
     }).populate("requester", "userName avatar image");
 
-    // Restituire un array vuoto invece di un errore se non ci sono richieste
+    // Return the list of received requests or an empty array
     res.status(200).json({ receivedRequests: receivedRequests || [] });
   } catch (error) {
     console.log("Errore nel recupero delle richieste.", error);
@@ -151,29 +151,30 @@ export const getFriends = async (req, res) => {
   try {
     const userId = req.userId;
 
-    console.log("Fetching friends for user:", userId);
-
     // Find all accepted friendships where the current user is the requester or recipient
     const friends = await Friendship.find({
       $or: [
         { requester: userId, status: "accepted" },
         { recipient: userId, status: "accepted" },
       ],
-    }).populate("requester recipient", "userName avatar image");
+    }).populate("requester recipient", "userName avatar image"); // Populate the details of the requester and recipient
 
     console.log("Found friendships:", friends.length);
 
-    // Format the result to return only the friend (not the current user)
+    // Array to store the friends of the current user, excluding himself
     const formattedFriends = [];
 
+    // Loop through the list of friends
     for (const friendship of friends) {
       try {
-        // Verifico se requester esiste e ha un _id
+        // Check if the requester field is valid
         if (friendship.requester && friendship.requester._id) {
+          // Convert the mongoDB _id to a string
           const requesterId = friendship.requester._id.toString();
 
-          // Se requester è l'utente corrente, restituisco recipient
+          // If the current user is the requester, then the friend is the recipient
           if (requesterId === userId) {
+            // Check that the recipient has a valid ID
             if (friendship.recipient && friendship.recipient._id) {
               formattedFriends.push({
                 _id: friendship.recipient._id,
@@ -183,7 +184,7 @@ export const getFriends = async (req, res) => {
               });
             }
           }
-          // Altrimenti, restituisco requester
+          // Else, the friend is the requester
           else {
             formattedFriends.push({
               _id: friendship.requester._id,
@@ -201,14 +202,21 @@ export const getFriends = async (req, res) => {
 
     console.log("Formatted friends:", formattedFriends.length);
 
-    // Remove duplicates by ID to be safe
+    // Create a set, which does not allow duplicate values
     const uniqueIds = new Set();
+    // Array to contain friends without duplicates
     const uniqueFriends = [];
 
+    // Loop through the formatted friends
     for (const friend of formattedFriends) {
+      // Convert the mongoDB _id to a string
       const friendId = friend._id.toString();
+      // Check if friendId is not already in the set
+      // If it's not, it means that this friend is new
       if (!uniqueIds.has(friendId)) {
+        // Add the friendId to the set
         uniqueIds.add(friendId);
+        // Add the object friend to the array
         uniqueFriends.push(friend);
       }
     }
@@ -256,13 +264,14 @@ export const removeFriend = async (req, res) => {
 
 export const searchFriends = async (req, res) => {
   try {
+    // Extract the search term from the request body
     const { searchTerm } = req.body;
 
     if (!searchTerm) {
       return res.status(400).json({ message: "Search term required" });
     }
 
-    // Sanitize the search term
+    // Sanitize the search term (remove special characters)
     const sanitizedSearchTerm = searchTerm.replace(
       /[.*+?^${}()|[\]\\]/g,
       "\\$&"
@@ -271,21 +280,23 @@ export const searchFriends = async (req, res) => {
     // The search term is sanitized and case insensitive
     const regex = new RegExp(sanitizedSearchTerm, "i");
 
-    // Trova tutte le amicizie accettate in cui l'utente è il requester o il recipient
+    // Find all accepted friendships where the current user is the requester or recipient
     const friendships = await Friendship.find({
       status: "accepted",
       $or: [{ requester: req.userId }, { recipient: req.userId }],
-    }).populate("requester recipient");
+    }).populate("requester recipient"); // Retrieve the details of the requester and recipient
 
-    // Filtra gli amici che corrispondono al termine di ricerca
+    // Loop through all the accepted friendships
     const friends = friendships
       .map((friendship) => {
-        // Identifica chi è l'amico in base a chi non è l'utente loggato
+        // Check if the current user is the requester
         return friendship.requester._id.toString() === req.userId
-          ? friendship.recipient
-          : friendship.requester;
+          ? // If he is, the friend is the recipient
+            friendship.recipient
+          : // Else, the friend is the requester
+            friendship.requester;
       })
-      .filter((friend) => regex.test(friend.userName)); // Applica il filtro del termine di ricerca
+      .filter((friend) => regex.test(friend.userName)); // Their username must match the search term
 
     return res.status(200).json({ friends });
   } catch (error) {
@@ -299,6 +310,8 @@ export const getFriendsForPreview = async (req, res) => {
     let { userId } = req;
 
     userId = new mongoose.Types.ObjectId(userId);
+
+    // Aggregate more operations in a single query
     const friends = await Message.aggregate([
       {
         // Find all messages where the user is the sender or recipient
@@ -311,6 +324,8 @@ export const getFriendsForPreview = async (req, res) => {
         $sort: { timestamp: -1 },
       },
       {
+        // For each friend that the user has communicated with
+        // save the timestamp of the last message
         $group: {
           _id: {
             // Determine who is the friend
@@ -324,6 +339,8 @@ export const getFriendsForPreview = async (req, res) => {
         },
       },
       {
+        // Merges the data of the friend with the user collection
+        // to get the friend's username, email, avatar and online status
         $lookup: {
           from: "users",
           localField: "_id",
@@ -335,6 +352,7 @@ export const getFriendsForPreview = async (req, res) => {
         $unwind: "$friend",
       },
       {
+        // Select only the necessary fields
         $project: {
           _id: 1,
           userName: "$friend.userName",
@@ -346,10 +364,12 @@ export const getFriendsForPreview = async (req, res) => {
         },
       },
       {
+        // Orders the list by the last message time
         $sort: { lastMessageTime: -1 },
       },
     ]);
 
+    // Returns the list of friends ordered by their last conversation
     return res.status(200).json({ friends });
   } catch (error) {
     console.log({ error });

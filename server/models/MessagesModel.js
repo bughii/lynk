@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Message schema
 const messageSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
@@ -45,6 +46,10 @@ const messageSchema = new mongoose.Schema({
       type: String,
       enum: ["small", "medium", "large"],
       default: "medium",
+    },
+    isSystem: {
+      type: Boolean,
+      default: false,
     },
   },
 });

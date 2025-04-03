@@ -24,6 +24,11 @@ function ChatPageContainer() {
     selectedChatData.isActive === false &&
     selectedChatData.userLeft === true;
 
+  const isGroupDeleted =
+    selectedChatType === "group" &&
+    selectedChatData &&
+    selectedChatData.isDeleted === true;
+
   // Effetto per caricare i dettagli aggiornati del gruppo dopo che è stato selezionato
   useEffect(() => {
     if (
@@ -54,14 +59,21 @@ function ChatPageContainer() {
     <div className="fixed top-0 h-[100vh] w-[100vw] bg-[#1c1d25] flex flex-col md:static md:flex-1">
       <ChatInfo />
 
-      {/* Banner per utente rimosso */}
+      {/* Banner for deleted group */}
+      {isGroupDeleted && (
+        <div className="bg-red-600 text-white py-2 px-4 text-center">
+          {t("chat.groupDeleted")}
+        </div>
+      )}
+
+      {/* Banner for removed user */}
       {isRemovedFromGroup && (
         <div className="bg-red-600 text-white py-2 px-4 text-center">
           {t("chat.removedFromGroup")}
         </div>
       )}
 
-      {/* Banner per utente che ha lasciato il gruppo */}
+      {/* Banner for user who left group */}
       {hasLeftGroup && (
         <div className="bg-yellow-600 text-white py-2 px-4 text-center">
           {t("chat.leftGroup")}

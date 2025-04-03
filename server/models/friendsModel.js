@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Friendship schema
 const friendshipSchema = new mongoose.Schema(
   {
     requester: {

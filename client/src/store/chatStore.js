@@ -311,6 +311,15 @@ export const useChatStore = create(
               : state.selectedChatMessages,
         })),
 
+      markGroupAsDeleted: (groupId) =>
+        set((state) => ({
+          groups: state.groups.map((group) =>
+            group._id === groupId
+              ? { ...group, isDeleted: true, deletedAt: new Date() }
+              : group
+          ),
+        })),
+
       markGroupAsInactive: (groupId) =>
         set((state) => {
           const groupIndex = state.groups.findIndex(

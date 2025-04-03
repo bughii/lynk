@@ -47,21 +47,19 @@ function MessageBar() {
     }
 
     // Controllo più rigoroso per gruppi
+    // Check for group restrictions
     if (selectedChatType === "group" && selectedChatData) {
-      // Controllo se l'utente non è più nel gruppo
+      // Add check for deleted groups
       if (
+        selectedChatData.isDeleted ||
         selectedChatData.isActive === false ||
         selectedChatData.userRemoved === true ||
         selectedChatData.userLeft === true
       ) {
-        console.log("Cannot send message, group status:", {
-          isActive: selectedChatData.isActive,
-          userRemoved: selectedChatData.userRemoved,
-          userLeft: selectedChatData.userLeft,
-        });
-
-        // Messaggi specifici in base allo stato
-        if (selectedChatData.userRemoved) {
+        // Show appropriate error message
+        if (selectedChatData.isDeleted) {
+          toast.error(t("chat.cannotSendMessageDeletedGroup"));
+        } else if (selectedChatData.userRemoved) {
           toast.error(t("chat.cannotSendMessageRemovedFromGroup"));
         } else if (selectedChatData.userLeft) {
           toast.error(t("chat.cannotSendMessageLeftGroup"));
@@ -71,7 +69,6 @@ function MessageBar() {
         return;
       }
     }
-
     if (selectedChatType === "friend" && socket) {
       socket.emit("sendMessage", {
         sender: user._id,
@@ -186,7 +183,7 @@ function MessageBar() {
           hover:scale-105 active:scale-95 ${
             selectedChatType === "group" &&
             selectedChatData &&
-            selectedChatData.isActive === false
+            (selectedChatData.isActive === false || selectedChatData.isDeleted)
               ? "opacity-50 cursor-not-allowed"
               : ""
           }`}
@@ -194,7 +191,7 @@ function MessageBar() {
         disabled={
           selectedChatType === "group" &&
           selectedChatData &&
-          selectedChatData.isActive === false
+          (selectedChatData.isActive === false || selectedChatData.isDeleted)
         }
       >
         <IoSend className="text-2xl" />
