@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { Message } from "./models/MessagesModel.js";
 import { User } from "./models/UserModel.js";
 import { Group } from "./models/GroupModel.js";
+import { BlockedUser } from "./models/BlockedUserModel.js";
 
 // Setting up the server on which the websockets connections will be handled
 const setupSocket = (server) => {
@@ -33,49 +34,62 @@ const setupSocket = (server) => {
   // Handles the sending of a message
   const sendMessage = async (message) => {
     try {
-      // Find socket connections for sender and recipient
+      // Find socket connections
       const senderSocketId = userSocketMap.get(message.sender);
       const recipientSocketId = userSocketMap.get(message.recipient);
 
-      // Create the message in the database
-      const createdMessage = await Message.create(message);
+      // Check if either user has blocked the other
+      const blockExists = await BlockedUser.findOne({
+        $or: [
+          { blocker: message.sender, blocked: message.recipient },
+          { blocker: message.recipient, blocked: message.sender },
+        ],
+      });
 
-      // Populate the sender and recipient fields of the message
-      const messageData = await Message.findById(createdMessage._id)
-        .populate("sender", "id email username image avatar")
-        .populate("recipient", "id email username image avatar");
+      const isBlocked = !!blockExists;
+      let blockedBy = null;
 
-      // Always emit to the sender, regardless of recipient's online status
+      if (isBlocked) {
+        blockedBy = blockExists.blocker.toString();
+      }
+
+      // Always save the message to database
+      const createdMessage = await Message.create({
+        ...message,
+        isBlocked,
+        blockedBy: isBlocked ? blockedBy : undefined,
+      });
+
+      // Populate the message
+      const populatedMessage = await Message.findById(createdMessage._id)
+        .populate("sender", "id email userName image avatar")
+        .populate("recipient", "id email userName image avatar");
+
+      // ALWAYS send to the sender, with appropriate block info
       if (senderSocketId) {
-        io.to(senderSocketId).emit("receiveMessage", messageData);
+        const messageForSender = {
+          ...populatedMessage.toObject(),
+          isBlocked,
+          blockedByUser: isBlocked && blockedBy === message.sender,
+          blockedByRecipient: isBlocked && blockedBy === message.recipient,
+          // Add this flag to help with alignment
+          isCurrentUserSender: true, // This user sent this message
+        };
+
+        io.to(senderSocketId).emit("receiveMessage", messageForSender);
       }
 
-      // Send to recipient if online, otherwise increment their unread count
-      if (recipientSocketId) {
-        // If recipient is online, send it in real time
-        io.to(recipientSocketId).emit("receiveMessage", messageData);
-      } else {
-        // If recipient is offline, increment their unread count
-        const user = await User.findById(message.recipient);
+      // For recipient message alignment
+      if (!isBlocked && recipientSocketId) {
+        const messageForRecipient = {
+          ...populatedMessage.toObject(),
+          // Add this flag to help with alignment
+          isCurrentUserSender: false, // This user received this message
+        };
 
-        if (user) {
-          const currentCounts = new Map(
-            Object.entries(user.unreadMessagesCount || {})
-          );
-
-          // Increment unread count for that specific sender
-          currentCounts.set(
-            message.sender,
-            (currentCounts.get(message.sender) || 0) + 1
-          );
-
-          await User.findByIdAndUpdate(
-            message.recipient,
-            { unreadMessagesCount: Object.fromEntries(currentCounts) },
-            { new: true }
-          );
-        }
+        io.to(recipientSocketId).emit("receiveMessage", messageForRecipient);
       }
+      // If blocked, no delivery occurs
     } catch (error) {
       console.error("Error sending message: ", error);
     }
@@ -690,6 +704,36 @@ const setupSocket = (server) => {
 
           // Clear temporary rehydration data
           set({ rehydratedUnreadGroupMessages: null });
+        });
+
+        socket.on("userBlocked", async (data) => {
+          const { blockedUserId } = data;
+          try {
+            // Notify the blocked user if they're online
+            const blockedUserSocketId = userSocketMap.get(blockedUserId);
+            if (blockedUserSocketId) {
+              io.to(blockedUserSocketId).emit("blockedByUser", {
+                blockerId: userId,
+              });
+            }
+          } catch (error) {
+            console.error("Error handling user blocked event:", error);
+          }
+        });
+
+        socket.on("userUnblocked", async (data) => {
+          const { blockedUserId } = data;
+          try {
+            // Notify the unblocked user if they're online
+            const unblockedUserSocketId = userSocketMap.get(blockedUserId);
+            if (unblockedUserSocketId) {
+              io.to(unblockedUserSocketId).emit("unblockedByUser", {
+                unblockerId: userId,
+              });
+            }
+          } catch (error) {
+            console.error("Error handling user unblocked event:", error);
+          }
         });
 
         socket.on("disconnect", async () => {

@@ -57,6 +57,46 @@ export const SocketProvider = ({ children }) => {
         newSocket.emit("fetchUnreadCounts", user._id);
       });
 
+      newSocket.on("blockedByUser", (data) => {
+        const { blockerId } = data;
+        console.log("You've been blocked by:", blockerId);
+
+        // Trigger an immediate UI update for the currently open chat
+        const { selectedChatType, selectedChatData, refreshSelectedChat } =
+          useChatStore.getState();
+
+        // If the current chat is with the user who just blocked you, refresh the UI
+        if (
+          selectedChatType === "friend" &&
+          selectedChatData &&
+          selectedChatData._id === blockerId
+        ) {
+          refreshSelectedChat(); // Add this method to chatStore
+        }
+
+        toast.info(t("block.youWereBlocked"));
+      });
+
+      newSocket.on("unblockedByUser", (data) => {
+        const { unblockerId } = data;
+        console.log("You've been unblocked by:", unblockerId);
+
+        // Trigger an immediate UI update for the currently open chat
+        const { selectedChatType, selectedChatData, refreshSelectedChat } =
+          useChatStore.getState();
+
+        // If the current chat is with the user who just unblocked you, refresh the UI
+        if (
+          selectedChatType === "friend" &&
+          selectedChatData &&
+          selectedChatData._id === unblockerId
+        ) {
+          refreshSelectedChat();
+        }
+
+        toast.info(t("block.youWereUnblocked"));
+      });
+
       newSocket.on("resetUnreadCount", (data) => {
         console.log("Server acknowledged resetUnreadCount:", data);
       });
@@ -69,15 +109,36 @@ export const SocketProvider = ({ children }) => {
       newSocket.on("receiveMessage", (message) => {
         const { selectedChatData, selectedChatType, addMessage } =
           useChatStore.getState();
+        const { user } = useAuthStore.getState(); // Get current user to properly compare
 
-        // Check if the message belongs to the currently selected private chat
+        // Make sure message has the full sender object structure
+        // This is the critical fix - ensure the sender and recipient have proper ID references
+        const processedMessage = {
+          ...message,
+          // Ensure sender has _id accessible as a property not a string
+          sender:
+            typeof message.sender === "string"
+              ? { _id: message.sender }
+              : message.sender,
+          // Ensure recipient has _id accessible as a property not a string
+          recipient:
+            typeof message.recipient === "string"
+              ? { _id: message.recipient }
+              : message.recipient,
+        };
+
+        // Check if we should add the message to the current chat
         if (
           selectedChatType === "friend" &&
           selectedChatData &&
-          (selectedChatData._id === message.sender._id ||
-            selectedChatData._id === message.recipient._id)
+          (selectedChatData._id === processedMessage.sender._id ||
+            selectedChatData._id === processedMessage.recipient._id)
         ) {
-          addMessage(message); // Add the message only if it belongs to the selected chat
+          // Important: Set isCurrentUserSender flag to help with alignment
+          processedMessage.isCurrentUserSender =
+            processedMessage.sender._id === user._id;
+
+          addMessage(processedMessage);
         } else {
           // Increment unread count if the message doesn't belong to the selected chat
           incrementUnreadCount(message.sender._id);
@@ -416,6 +477,8 @@ export const SocketProvider = ({ children }) => {
           newSocket.off("userStatusUpdate");
           newSocket.off("groupCreated");
           newSocket.off("addedToGroup");
+          newSocket.off("blockedByUser");
+          newSocket.off("unblockedByUser");
 
           newSocket.disconnect();
           setChatStoreSocket(null);

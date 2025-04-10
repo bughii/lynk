@@ -1,28 +1,66 @@
 import { Message } from "../models/MessagesModel.js";
 import { mkdirSync, renameSync } from "fs";
+import { BlockedUser } from "../models/BlockedUserModel.js";
 
 // Retrieve messages between two users
 export const getMessages = async (req, res) => {
   try {
-    const user1 = req.userId; // The logged in user
-    const user2 = req.body.id; // The user to chat with
+    const userId = req.userId;
+    const otherUserId = req.body.id;
 
-    if (!user1 || !user2) {
-      return res.status(400).json({ message: "Both user ID required" });
+    if (!userId || !otherUserId) {
+      return res.status(400).json({ message: "Both user IDs required" });
     }
 
-    // Search the Message collection
-    const messages = await Message.find({
+    // Get all messages between the two users
+    const allMessages = await Message.find({
       $or: [
-        //Sender is user1 and recipient is user2 or vice versa
-        { sender: user1, recipient: user2 },
-        { sender: user2, recipient: user1 },
+        { sender: userId, recipient: otherUserId },
+        { sender: otherUserId, recipient: userId },
       ],
-    }).sort({ timestamp: 1 }); // Make them in chronological order
+    })
+      .sort({ timestamp: 1 })
+      .populate("sender", "id email userName image avatar")
+      .populate("recipient", "id email userName image avatar");
 
-    return res.status(200).json({ messages }); // Return the messages
+    // Check if there's a block between these users
+    const blockExists = await BlockedUser.findOne({
+      $or: [
+        { blocker: userId, blocked: otherUserId },
+        { blocker: otherUserId, blocked: userId },
+      ],
+    });
+
+    // Filter visible messages based on block status
+    let visibleMessages = allMessages;
+
+    if (blockExists) {
+      const blockCreationTime = blockExists.createdAt;
+
+      // Filter out messages that shouldn't be shown
+      visibleMessages = allMessages.filter((message) => {
+        // If message was sent before block was created, show it to everyone
+        if (message.timestamp < blockCreationTime) {
+          return true;
+        }
+
+        // If current user sent the message, they can see it (with a block indicator)
+        if (message.sender._id.toString() === userId) {
+          message.isBlocked = true;
+          message.blockedByUser = blockExists.blocker.toString() === userId;
+          message.blockedByRecipient =
+            blockExists.blocker.toString() === otherUserId;
+          return true;
+        }
+
+        // Otherwise, message should not be visible
+        return false;
+      });
+    }
+
+    return res.status(200).json({ messages: visibleMessages });
   } catch (error) {
-    console.log({ error });
+    console.error("Error getting messages:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -11,6 +11,7 @@ import FriendRequests from "@/pages/chat/empty-chat-page-container/received-requ
 import PendingRequests from "@/pages/chat/empty-chat-page-container/sent-requests";
 import AddContact from "@/pages/chat/empty-chat-page-container/add-contact";
 import { useTranslation } from "react-i18next";
+import BlockedUsersList from "@/pages/chat/empty-chat-page-container/blocked-users";
 
 import {
   DropdownMenu,
@@ -24,6 +25,7 @@ import {
   FaInbox,
   FaUserClock,
   FaUserPlus,
+  FaUserSlash,
 } from "react-icons/fa";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
@@ -35,6 +37,7 @@ function ProfileInfoComponent() {
   const [openRequestsDialog, setOpenRequestsDialog] = useState(false);
   const [openPendingDialog, setOpenPendingDialog] = useState(false);
   const [openAddFriendDialog, setOpenAddFriendDialog] = useState(false);
+  const [openBlockedUsersDialog, setOpenBlockedUsersDialog] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { t } = useTranslation();
 
@@ -125,6 +128,15 @@ function ProfileInfoComponent() {
             >
               <FaUserPlus className="mr-2 h-4 w-4" />{" "}
               {t("mainpage.friendsDialog.addFriend.title")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setOpenBlockedUsersDialog(true);
+                setDropdownOpen(false);
+              }}
+            >
+              <FaUserSlash className="mr-2 h-4 w-4" />
+              {t("mainpage.friendsDialog.blockedList.title")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -223,6 +235,20 @@ function ProfileInfoComponent() {
             {t("mainpage.friendsDialog.addFriend.title")}
           </h3>
           <AddContact />
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={openBlockedUsersDialog}
+        onOpenChange={(open) => {
+          setOpenBlockedUsersDialog(open);
+          if (!open) handleDialogClose();
+        }}
+      >
+        <DialogContent className="bg-[#181920] text-white p-4 rounded-lg border-none">
+          <h3 className="text-xl mb-4">
+            {t("mainpage.friendsDialog.blockedList.title")}
+          </h3>
+          <BlockedUsersList />
         </DialogContent>
       </Dialog>
     </div>

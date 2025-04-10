@@ -10,6 +10,7 @@ import messagesRoutes from "./routes/messagesRoutes.js";
 import friendsRoutes from "./routes/friendsRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
 import { User } from "./models/UserModel.js";
+import blockRoutes from "./routes/blockRoutes.js";
 
 // Dotenv config
 dotenv.config();
@@ -38,6 +39,7 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/messages", messagesRoutes);
 app.use("/api/friendship", friendsRoutes);
 app.use("/api/groups", groupRoutes);
+app.use("/api/block", blockRoutes);
 
 const server = app.listen(port, () => {
   console.log(`Server sta runnando sulla porta ${port}`);

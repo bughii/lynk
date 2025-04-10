@@ -20,6 +20,8 @@ export const useChatStore = create(
       unreadMessagesCount: {}, // Unread messages count for direct messages
       unreadGroupMessagesCount: {}, // Unread messages count for group messages
       socket: null, // Socket connection to the server
+      blockedUsers: [], // Users blocked by the current user
+      blockedByUsers: [], // Users who have blocked the current user
 
       // Method to set the socket connection in the store
       setSocket: (socket) => {
@@ -33,6 +35,74 @@ export const useChatStore = create(
         fontSize: "medium",
       },
       language: "en",
+
+      setBlockedUsers: (blockedUsers) => set({ blockedUsers }),
+      setBlockedByUsers: (blockedByUsers) => set({ blockedByUsers }),
+
+      refreshSelectedChat: () => {
+        const { selectedChatType, selectedChatData } = get();
+
+        if (selectedChatType === "friend" && selectedChatData) {
+          // This will trigger a re-render of components using this state
+          set({
+            selectedChatData: {
+              ...selectedChatData,
+              _refreshTimestamp: Date.now(),
+            },
+          });
+        }
+      },
+
+      addBlockedUser: (userId) =>
+        set((state) => ({
+          blockedUsers: [...state.blockedUsers, userId],
+        })),
+
+      removeBlockedUser: (userId) =>
+        set((state) => ({
+          blockedUsers: state.blockedUsers.filter((id) => id !== userId),
+        })),
+
+      addBlockedByUser: (userId) =>
+        set((state) => ({
+          blockedByUsers: [...state.blockedByUsers, userId],
+        })),
+
+      removeBlockedByUser: (userId) =>
+        set((state) => ({
+          blockedByUsers: state.blockedByUsers.filter((id) => id !== userId),
+        })),
+
+      fetchBlockedUsers: async () => {
+        try {
+          const response = await apiClient.get("/api/block/list");
+          if (response.status === 200) {
+            set({
+              blockedUsers: response.data.blockedUsers.map((user) => user._id),
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching blocked users:", error);
+        }
+      },
+
+      isUserBlocked: (userId) => {
+        const state = get();
+        return (
+          state.blockedUsers.includes(userId) ||
+          state.blockedByUsers.includes(userId)
+        );
+      },
+
+      userHasBlocked: (userId) => {
+        const state = get();
+        return state.blockedUsers.includes(userId);
+      },
+
+      userIsBlocked: (userId) => {
+        const state = get();
+        return state.blockedByUsers.includes(userId);
+      },
 
       // This ensure synchronization of unread messages count across devices
       // Using the max ensures all unread messages are counted, avoiding data loss or undercounting

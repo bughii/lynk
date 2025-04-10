@@ -52,6 +52,15 @@ const messageSchema = new mongoose.Schema({
       default: false,
     },
   },
+  isBlocked: {
+    type: Boolean,
+    default: false,
+  },
+  blockedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Users",
+    required: false,
+  },
 });
 
 export const Message = mongoose.model("Messages", messageSchema);

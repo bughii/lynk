@@ -1,5 +1,3 @@
-// client/src/pages/chat/chat-page-container/components/chat-info/index.jsx
-
 import React, { useState } from "react";
 import { RiCloseFill } from "react-icons/ri";
 import { FaInfoCircle } from "react-icons/fa";
@@ -8,10 +6,18 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 import GroupInfoDialog from "./group-info";
+import BlockUserDialog from "../block-user-dialog";
+import { useTranslation } from "react-i18next";
+import { FaBan } from "react-icons/fa";
 
+/**
+ * Header component for chat that displays user/group info and action buttons
+ */
 function ChatInfo() {
+  const { t } = useTranslation();
   const { closeChat, selectedChatData, selectedChatType } = useChatStore();
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
 
   const handleOpenGroupInfo = () => {
     setShowGroupInfo(true);
@@ -62,6 +68,18 @@ function ChatInfo() {
             <FaInfoCircle className="text-2xl" />
           </button>
         )}
+
+        {/* Add Block/Unblock button for direct chats */}
+        {selectedChatType === "friend" && (
+          <button
+            className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
+            onClick={() => setShowBlockDialog(true)}
+            title={t("block.manageBlocking")}
+          >
+            <FaBan className="text-2xl" />
+          </button>
+        )}
+
         <button
           className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
           onClick={closeChat}
@@ -75,6 +93,16 @@ function ChatInfo() {
           open={showGroupInfo}
           onOpenChange={setShowGroupInfo}
           group={selectedChatData}
+        />
+      )}
+
+      {/* Add Block User Dialog */}
+      {selectedChatType === "friend" && (
+        <BlockUserDialog
+          open={showBlockDialog}
+          onOpenChange={setShowBlockDialog}
+          userId={selectedChatData._id}
+          userName={selectedChatData.userName}
         />
       )}
     </div>

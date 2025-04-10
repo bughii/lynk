@@ -111,6 +111,9 @@
         "requestSentError": "Error sending request",
         "searchFriendPlaceholder": "Search for a friend",
         "addFriendButton": "Add Friend"
+      },
+      "blockedList": {
+        "title": "Blocked Users"
       }
     },
     "logoutDialog": {
@@ -261,5 +264,40 @@
     "cannotSendMessageLeftGroup": "Cannot send message: you left this group",
     "cannotSendMessageInactiveGroup": "Cannot send message: this group is inactive",
     "messageRejected": "Message rejected: you are no longer a member of this group"
+  },
+  "block": {
+    "manageBlocking": "Manage Blocking",
+    "block": "Block",
+    "unblock": "Unblock",
+    "confirmBlock": "Block User",
+    "confirmUnblock": "Unblock User",
+    "confirmBlockDescription": "Are you sure you want to block {name}? You will not be able to send or receive messages from this user.",
+    "confirmUnblockDescription": "Are you sure you want to unblock {name}? You will be able to send and receive messages again.",
+    "youAreBlocked": "You have been blocked by {name}",
+    "youHaveBlocked": "You have blocked {name}",
+    "userBlocked": "User blocked successfully",
+    "userUnblocked": "User unblocked successfully",
+    "errorBlocking": "Error blocking user",
+    "errorUnblocking": "Error unblocking user",
+    "errorFetchingBlockedUsers": "Error fetching blocked users",
+    "youHaveBlockedUser": "You have blocked this user. Messages won't be delivered.",
+    "youAreBlockedByUser": "You have been blocked by this user. Messages won't be delivered.",
+    "messagesWontBeDelivered": "Messages won't be delivered",
+    "messagesWontBeDeliveredBlocked": "You've blocked this user. Messages won't be delivered.",
+    "messagesWontBeDeliveredYouAreBlocked": "You've been blocked. Messages won't be delivered.",
+    "messageNotDeliveredYouBlocked": "Message not delivered (you blocked this user)",
+    "messageNotDeliveredYouAreBlocked": "Message not delivered (you are blocked)",
+    "blockingExplanation1": "When you block someone, neither of you will see each other's messages.",
+    "blockingExplanation2": "Previous messages will still be visible in the chat.",
+    "youWereBlocked": "You were blocked by a user",
+    "youWereUnblocked": "You were unblocked by a user",
+    "noBlockedUsers": "You haven't blocked any users",
+    "blockedUsers": "Blocked Users",
+    "blocking": {
+      "bothDirections": "You've blocked this user. Messages won't be exchanged in either direction."
+    },
+    "blocked": {
+      "bothDirections": "You've been blocked. Messages won't be exchanged in either direction."
+    }
   }
 }

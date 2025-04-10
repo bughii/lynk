@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import logo from "@/assets/logosite.svg";
 import ProfileInfoComponent from "./components/profile-info";
 

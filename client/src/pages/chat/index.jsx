@@ -1,7 +1,5 @@
 import React, { useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import ContactsListContainer from "./contacts-list";
 import EmptyChatContainer from "./empty-chat-page-container";
 import ChatPageContainer from "./chat-page-container";

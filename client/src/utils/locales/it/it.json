@@ -110,6 +110,9 @@
         "requestSentError": "Errore durante l'invio della richiesta",
         "searchFriendPlaceholder": "Cerca un amico",
         "sendRequest": "Invia Richiesta"
+      },
+      "blockedList": {
+        "title": "Utenti Bloccati"
       }
     },
     "logoutDialog": {
@@ -261,5 +264,40 @@
     "cannotSendMessageLeftGroup": "Impossibile inviare il messaggio: hai lasciato questo gruppo",
     "cannotSendMessageInactiveGroup": "Impossibile inviare il messaggio: questo gruppo è inattivo",
     "messageRejected": "Messaggio rifiutato: non sei più un membro di questo gruppo"
+  },
+  "block": {
+    "manageBlocking": "Gestisci Blocco",
+    "block": "Blocca",
+    "unblock": "Sblocca",
+    "confirmBlock": "Bloccare Utente",
+    "confirmUnblock": "Sbloccare Utente",
+    "confirmBlockDescription": "Sei sicuro di voler bloccare {name}? Non potrai inviare o ricevere messaggi da questo utente.",
+    "confirmUnblockDescription": "Sei sicuro di voler sbloccare {name}? Potrai nuovamente inviare e ricevere messaggi.",
+    "youAreBlocked": "Sei stato bloccato da {name}",
+    "youHaveBlocked": "Hai bloccato {name}",
+    "userBlocked": "Utente bloccato con successo",
+    "userUnblocked": "Utente sbloccato con successo",
+    "errorBlocking": "Errore durante il blocco dell'utente",
+    "errorUnblocking": "Errore durante lo sblocco dell'utente",
+    "errorFetchingBlockedUsers": "Errore nel recupero degli utenti bloccati",
+    "youHaveBlockedUser": "Hai bloccato questo utente. I messaggi non saranno recapitati.",
+    "youAreBlockedByUser": "Sei stato bloccato da questo utente. I messaggi non saranno recapitati.",
+    "messagesWontBeDelivered": "I messaggi non saranno recapitati",
+    "messagesWontBeDeliveredBlocked": "Hai bloccato questo utente. I messaggi non saranno recapitati.",
+    "messagesWontBeDeliveredYouAreBlocked": "Sei stato bloccato. I messaggi non saranno recapitati.",
+    "messageNotDeliveredYouBlocked": "Messaggio non recapitato (hai bloccato questo utente)",
+    "messageNotDeliveredYouAreBlocked": "Messaggio non recapitato (sei stato bloccato)",
+    "blockingExplanation1": "Quando blocchi qualcuno, nessuno di voi vedrà i messaggi dell'altro.",
+    "blockingExplanation2": "I messaggi precedenti saranno ancora visibili nella chat.",
+    "youWereBlocked": "Sei stato bloccato da un utente",
+    "youWereUnblocked": "Sei stato sbloccato da un utente",
+    "noBlockedUsers": "Non hai bloccato nessun utente",
+    "blockedUsers": "Utenti Bloccati",
+    "blocking": {
+      "bothDirections": "Hai bloccato questo utente. I messaggi non saranno scambiati in nessuna direzione."
+    },
+    "blocked": {
+      "bothDirections": "Sei stato bloccato. I messaggi non saranno scambiati in nessuna direzione."
+    }
   }
 }

@@ -1,20 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "@/store/chatStore";
+import { useAuthStore } from "@/store/authStore"; // Make sure to add this import
 import moment from "moment";
 import { apiClient } from "@/lib/api-client";
 import { GET_GROUP_MESSAGES, GET_MESSAGES_ROUTE } from "@/utils/constants";
 import { HOST } from "@/utils/constants";
 import { IoMdArrowRoundDown } from "react-icons/io";
-import { FaFileArchive } from "react-icons/fa";
+import { FaFileArchive, FaBan } from "react-icons/fa";
 import { IoCloseSharp } from "react-icons/io5";
-import { useAuthStore } from "@/store/authStore";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 const FONT_SIZES = {
-  small: "1rem", // 14px
-  medium: "2rem", // 16px
-  large: "3rem", // 18px
+  small: "1rem",
+  medium: "2rem",
+  large: "3rem",
 };
 
 function MessageContainer() {
@@ -25,7 +32,8 @@ function MessageContainer() {
     setSelectedChatMessages,
     chatColors,
   } = useChatStore();
-  const { user } = useAuthStore();
+  const { user } = useAuthStore(); // Get the current user
+  const { t } = useTranslation();
   const scrollRef = useRef();
 
   const [showImage, setShowImage] = useState(false);
@@ -141,92 +149,131 @@ function MessageContainer() {
     window.URL.revokeObjectURL(urlBlob);
   };
 
-  const renderDMMessages = (message) => (
-    <div
-      className={`${
-        message.sender === selectedChatData._id ? "text-left" : "text-right"
-      }`}
-    >
-      {message.messageType === "text" && (
-        <div
-          style={{
-            backgroundColor:
-              message.sender !== selectedChatData._id
-                ? "rgba(42, 43, 51, 0.05)"
-                : "rgba(22, 66, 91, 0.05)",
-            borderColor:
-              message.sender !== selectedChatData._id
+  const renderDMMessages = (message) => {
+    // If the message already has the processed flag from socket, use it
+    // Otherwise, determine based on sender ID comparison
+    const isCurrentUserSender =
+      message.isCurrentUserSender !== undefined
+        ? message.isCurrentUserSender
+        : message.sender._id === user._id;
+
+    return (
+      <div className={`${isCurrentUserSender ? "text-right" : "text-left"}`}>
+        {message.messageType === "text" && (
+          <div
+            style={{
+              backgroundColor: isCurrentUserSender
+                ? "rgba(22, 66, 91, 0.05)"
+                : "rgba(42, 43, 51, 0.05)",
+              borderColor: isCurrentUserSender
                 ? chatColors.sentMessageColor
                 : chatColors.receivedMessageColor,
-            color:
-              message.sender !== selectedChatData._id
+              color: isCurrentUserSender
                 ? chatColors.sentMessageColor
                 : chatColors.receivedMessageColor,
-            fontSize: FONT_SIZES[chatColors.fontSize] || FONT_SIZES.medium,
-          }}
-          className="border inline-block p-4 rounded my-1 max-w-[50%] break-words"
-        >
-          {message.content}
-        </div>
-      )}
-      {message.messageType === "file" && (
-        <div
-          style={{
-            backgroundColor:
-              message.sender !== selectedChatData._id
-                ? "rgba(42, 43, 51, 0.05)"
-                : "rgba(22, 66, 91, 0.05)",
-            borderColor:
-              message.sender !== selectedChatData._id
+              fontSize: FONT_SIZES[chatColors.fontSize] || FONT_SIZES.medium,
+              opacity: message.isBlocked ? 0.7 : 1,
+            }}
+            className="border inline-block p-4 rounded my-1 max-w-[50%] break-words"
+          >
+            {message.content}
+
+            {/* Block indicator logic stays the same */}
+            {message.isBlocked && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-block ml-2 text-red-500">
+                      <FaBan size={14} />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-[#1c1b1e] border-none p-3 text-white">
+                    {message.blockedByUser
+                      ? t("block.messageNotDeliveredYouBlocked")
+                      : t("block.messageNotDeliveredYouAreBlocked")}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )}
+
+        {message.messageType === "file" && (
+          <div
+            style={{
+              backgroundColor: isCurrentUserSender
+                ? "rgba(22, 66, 91, 0.05)"
+                : "rgba(42, 43, 51, 0.05)",
+              borderColor: isCurrentUserSender
                 ? chatColors.sentMessageColor
                 : chatColors.receivedMessageColor,
-            color:
-              message.sender !== selectedChatData._id
+              color: isCurrentUserSender
                 ? chatColors.sentMessageColor
                 : chatColors.receivedMessageColor,
-          }}
-          className="border inline-block p-4 rounded my-1 max-w-[50%] break-words"
-        >
-          {checkIfImage(message.fileURL) ? (
-            <div
-              className="cursor-pointer"
-              onClick={() => {
-                setShowImage(true);
-                setImageURL(message.fileURL);
-              }}
-            >
-              <img
-                src={`${HOST}/${message.fileURL}`}
-                alt="file"
-                height={300}
-                width={300}
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-4">
-              <span className="text-3xl bg-black/20 rounded full p-3">
-                <FaFileArchive />
-              </span>
-              <span>
-                {message.fileURL.split("/").pop().length > 30
-                  ? message.fileURL.split("/").pop().substring(0, 27) + "..."
-                  : message.fileURL.split("/").pop()}
-              </span>
-              <span
-                className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
-                onClick={() => downloadFile(message.fileURL)}
+              opacity: message.isBlocked ? 0.7 : 1,
+            }}
+            className="border inline-block p-4 rounded my-1 max-w-[50%] break-words"
+          >
+            {checkIfImage(message.fileURL) ? (
+              <div
+                className="cursor-pointer"
+                onClick={() => {
+                  setShowImage(true);
+                  setImageURL(message.fileURL);
+                }}
               >
-                <IoMdArrowRoundDown />
-              </span>
-            </div>
-          )}
+                <img
+                  src={`${HOST}/${message.fileURL}`}
+                  alt="file"
+                  height={300}
+                  width={300}
+                  className={message.isBlocked ? "opacity-70" : ""}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-3xl bg-black/20 rounded full p-3">
+                  <FaFileArchive />
+                </span>
+                <span>
+                  {message.fileURL.split("/").pop().length > 30
+                    ? message.fileURL.split("/").pop().substring(0, 27) + "..."
+                    : message.fileURL.split("/").pop()}
+                </span>
+                <span
+                  className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                  onClick={() => downloadFile(message.fileURL)}
+                >
+                  <IoMdArrowRoundDown />
+                </span>
+              </div>
+            )}
+
+            {/* Block indicator for file messages */}
+            {message.isBlocked && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="absolute top-2 right-2 text-red-500">
+                      <FaBan size={14} />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-[#1c1b1e] border-none p-3 text-white">
+                    {message.blockedByUser
+                      ? t("block.messageNotDeliveredYouBlocked")
+                      : t("block.messageNotDeliveredYouAreBlocked")}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )}
+        <div className="text-xs text-gray-500">
+          {moment(message.timestamp).format("LT")}
         </div>
-      )}
-      <div className="text-xs text-gray-500">
-        {moment(message.timestamp).format("LT")}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderGroupMessages = (message) => {
     const currentUserId = user._id.toString();
