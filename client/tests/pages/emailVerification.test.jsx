@@ -1,9 +1,6 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/store/authStore";
 import EmailVerificationPage from "@/pages/email-verification";
 
 // Mock useTranslation
@@ -117,7 +114,9 @@ describe("EmailVerificationPage", () => {
       fireEvent.change(input, { target: { value: (index + 1).toString() } });
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith("/profile");
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/profile");
+    });
   });
 
   it("should display error toast on failed verification", async () => {

@@ -1,13 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import Authentication from "../../src/pages/authentication";
-import { Link, MemoryRouter, Route, Routes, Navigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
-import { useAuthStore } from "../../src/store/authStore";
-import { useNavigate } from "react-router-dom";
-import App from "@/App";
 
 const mockLogin = vi.fn();
 const mockSignup = vi.fn();
@@ -48,7 +44,7 @@ vi.mock("react-i18next", () => ({
     type: "3rdParty",
     init: vi.fn(),
   },
-  // Add a more complete i18n mock
+
   i18n: {
     changeLanguage: vi.fn().mockResolvedValue({}),
     language: "en",
@@ -92,7 +88,7 @@ describe("Authentication Component", () => {
       </MemoryRouter>
     );
 
-    // Locating the tabs by role and aria-labels
+    // Locating the tabs
     const loginTab = screen.getByRole("tab", { name: "Login tab" });
     const signupTab = screen.getByRole("tab", { name: "Signup tab" });
 
@@ -125,7 +121,7 @@ describe("Authentication Component", () => {
       </MemoryRouter>
     );
 
-    // Find and click the signup tab using aria-label
+    // Find and click the signup tab
     const signupTab = screen.getByRole("tab", { name: "Signup tab" });
     await userEvent.click(signupTab);
 

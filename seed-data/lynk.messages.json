@@ -1,0 +1,539 @@
+[{
+  "_id": {
+    "$oid": "67fc47944952fba4a1d07367"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "recipient": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "messageType": "text",
+  "content": "Hey! 😇",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:24:04.326Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc47a54952fba4a1d07377"
+  },
+  "sender": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "Hello! How are you? 😁",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:24:21.158Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc47fc4952fba4a1d07381"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "recipient": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "messageType": "file",
+  "fileURL": "uploads/files/1744586748156/Scared Happy Gilmore GIF.gif",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:25:48.164Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc481d4952fba4a1d0738b"
+  },
+  "sender": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "That is funny! 🤣🤣🤣",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:26:21.065Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc48234952fba4a1d07395"
+  },
+  "sender": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "Byeee",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:26:27.232Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc488a4952fba4a1d073cf"
+  },
+  "sender": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "Just added you!",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:28:10.376Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc48a64952fba4a1d073df"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "recipient": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "messageType": "text",
+  "content": "Oh hi 🤩",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:28:38.008Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc48b24952fba4a1d073e9"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "recipient": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "messageType": "text",
+  "content": "Wyd?",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:28:50.117Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc493e4952fba4a1d07425"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "recipient": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "messageType": "text",
+  "content": "HIIIIIIIIIII 🤘",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:31:10.588Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc49534952fba4a1d0742f"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "recipient": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "messageType": "file",
+  "fileURL": "uploads/files/1744587091981/See Ya Laughing GIF by Laff.gif",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:31:31.989Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc495b4952fba4a1d0743f"
+  },
+  "sender": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "😂😂😂",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:31:39.496Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc495f4952fba4a1d07449"
+  },
+  "sender": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "Hi!",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:31:43.810Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc49934952fba4a1d07471"
+  },
+  "sender": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "recipient": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "messageType": "text",
+  "content": "This is me!",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:32:35.711Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc49e04952fba4a1d074a8"
+  },
+  "sender": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "recipient": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "messageType": "text",
+  "content": "Wanna play online?",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:33:52.306Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4a054952fba4a1d074c2"
+  },
+  "sender": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "recipient": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "messageType": "text",
+  "content": "Not really..",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:34:29.337Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4a184952fba4a1d074d3"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "Group created",
+  "timestamp": {
+    "$date": "2025-04-13T23:34:48.066Z"
+  },
+  "appearance": {
+    "isSystem": true,
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium"
+  },
+  "isBlocked": false,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4b0b4952fba4a1d0753c"
+  },
+  "sender": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "messageType": "text",
+  "content": "Group created",
+  "timestamp": {
+    "$date": "2025-04-13T23:38:51.906Z"
+  },
+  "appearance": {
+    "isSystem": true,
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium"
+  },
+  "isBlocked": false,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4b4f4952fba4a1d0757c"
+  },
+  "sender": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "recipient": null,
+  "messageType": "text",
+  "content": "Hi! When are we playing?",
+  "timestamp": {
+    "$date": "2025-04-13T23:39:59.946Z"
+  },
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4bc14952fba4a1d07610"
+  },
+  "sender": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "messageType": "text",
+  "content": "Group created",
+  "timestamp": {
+    "$date": "2025-04-13T23:41:53.070Z"
+  },
+  "appearance": {
+    "isSystem": true,
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium"
+  },
+  "isBlocked": false,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4beb4952fba4a1d07624"
+  },
+  "sender": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "recipient": null,
+  "messageType": "text",
+  "content": "I don't really know...🤌",
+  "timestamp": {
+    "$date": "2025-04-13T23:42:35.406Z"
+  },
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4c364952fba4a1d0763a"
+  },
+  "sender": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "recipient": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "messageType": "file",
+  "fileURL": "uploads/files/1744587830480/GIF by Paramount Movies.gif",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:43:50.487Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4c384952fba4a1d07644"
+  },
+  "sender": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "recipient": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "messageType": "text",
+  "content": "Yo! ",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:43:52.371Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc4c6a4952fba4a1d07672"
+  },
+  "sender": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messageType": "text",
+  "content": "I'm blocking you! AHhahahah",
+  "appearance": {
+    "sentMessageColor": "#3B82F6",
+    "receivedMessageColor": "#8B5CF6",
+    "fontSize": "medium",
+    "isSystem": false
+  },
+  "isBlocked": false,
+  "timestamp": {
+    "$date": "2025-04-13T23:44:42.599Z"
+  },
+  "__v": 0
+}]

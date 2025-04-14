@@ -2,22 +2,68 @@ import { User } from "../models/UserModel.js";
 import { Group } from "../models/GroupModel.js";
 import { Message } from "../models/MessagesModel.js";
 import mongoose from "mongoose";
+import { BlockedUser } from "../models/BlockedUserModel.js";
+
+const checkBlockingRelationships = async (userId, memberIds) => {
+  // Find any block relationships between current user and potential members
+  const blockingRelationships = await BlockedUser.find({
+    $or: [
+      // Current user has blocked member
+      { blocker: userId, blocked: { $in: memberIds } },
+      // Member has blocked current user
+      { blocker: { $in: memberIds }, blocked: userId },
+    ],
+  });
+
+  // Extract the IDs of users in a blocking relationship
+  const blockedUserIds = blockingRelationships.map((relationship) =>
+    relationship.blocker.toString() === userId.toString()
+      ? relationship.blocked.toString()
+      : relationship.blocker.toString()
+  );
+
+  return blockedUserIds;
+};
 
 export const createGroup = async (req, res) => {
   try {
     const { name, members } = req.body;
     const userId = req.userId;
 
-    const admin = await User.findById(userId);
+    // Basic validation
+    if (!name || !Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({
+        message: "Group name and at least one member are required",
+      });
+    }
 
+    const admin = await User.findById(userId);
     if (!admin) {
       return res.status(404).json({ message: "Admin user not found" });
     }
 
-    // Check if all user IDs in the members array actually exist in the db
-    // Find all users whose ID is in the members array
+    // Check for blocking relationships between admin and potential members
+    const blockedUserIds = await checkBlockingRelationships(userId, members);
+
+    if (blockedUserIds.length > 0) {
+      // Get usernames of blocked users for more informative error message
+      const blockedUsers = await User.find({
+        _id: { $in: blockedUserIds },
+      }).select("userName");
+
+      const blockedUsernames = blockedUsers
+        .map((user) => user.userName)
+        .join(", ");
+
+      return res.status(403).json({
+        message: "Cannot add blocked users to group",
+        blockedUserIds,
+        blockedUsernames,
+      });
+    }
+
+    // Continue with existing group creation logic...
     const validateMembers = await User.find({ _id: { $in: members } });
-    // If all IDs in the members array exist in the db, the length of the array will be the same
     if (validateMembers.length !== members.length) {
       return res.status(404).json({ message: "One or more members not found" });
     }
@@ -29,9 +75,26 @@ export const createGroup = async (req, res) => {
     });
 
     await newGroup.save();
+
+    // Create a system message for group creation
+    const systemMessage = new Message({
+      sender: userId,
+      messageType: "text",
+      content: "Group created", // This will be replaced by translations in the frontend
+      timestamp: new Date(),
+      appearance: {
+        isSystem: true,
+      },
+    });
+
+    await systemMessage.save();
+
+    newGroup.messages.push(systemMessage._id);
+    await newGroup.save();
+
     return res.status(201).json({ group: newGroup });
   } catch (error) {
-    console.log({ error });
+    console.error("Error in createGroup:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -298,11 +361,13 @@ export const deleteGroup = async (req, res) => {
 
     // Create a valid system message about the deletion
     const systemMessage = new Message({
-      sender: userId, // Admin as sender
-      messageType: "text", // "text" type
-      content: "This group has been deleted by the admin.",
+      sender: userId,
+      messageType: "text",
+      content: "Group deleted",
       timestamp: new Date(),
-      isSystem: true, // This is a system message
+      appearance: {
+        isSystem: true,
+      },
     });
 
     await systemMessage.save();
@@ -373,7 +438,7 @@ export const addMembers = async (req, res) => {
     const { groupId, memberIds } = req.body;
     const userId = req.userId;
 
-    // Check if groupId and memberIds are valid
+    // Validation checks remain the same...
     if (
       !groupId ||
       !memberIds ||
@@ -383,24 +448,41 @@ export const addMembers = async (req, res) => {
       return res.status(400).json({ message: "Invalid request data" });
     }
 
-    // Check if the group exists
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // Check if the current user is the admin of the group
     if (group.admin.toString() !== userId) {
       return res.status(403).json({ message: "Only admin can add members" });
     }
 
-    // Check if the users that are being added exist
+    // Check for blocking relationships between admin and potential members
+    const blockedUserIds = await checkBlockingRelationships(userId, memberIds);
+
+    if (blockedUserIds.length > 0) {
+      // Get usernames of blocked users for more informative error message
+      const blockedUsers = await User.find({
+        _id: { $in: blockedUserIds },
+      }).select("userName");
+
+      const blockedUsernames = blockedUsers
+        .map((user) => user.userName)
+        .join(", ");
+
+      return res.status(403).json({
+        message: "Cannot add blocked users to group",
+        blockedUserIds,
+        blockedUsernames,
+      });
+    }
+
+    // Continue with existing member addition logic...
     const users = await User.find({ _id: { $in: memberIds } });
     if (users.length !== memberIds.length) {
       return res.status(400).json({ message: "One or more users not found" });
     }
 
-    // Filter out the users that are already members of the group
     const currentMemberIds = group.members.map((member) => member.toString());
     const newMemberIds = memberIds.filter(
       (id) => !currentMemberIds.includes(id)
@@ -418,7 +500,7 @@ export const addMembers = async (req, res) => {
       );
     }
 
-    // Add the new members to the group AND SAVE
+    // Add the new members to the group
     group.members.push(...newMemberIds);
     await group.save();
 

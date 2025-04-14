@@ -1,0 +1,105 @@
+[{
+  "_id": {
+    "$oid": "67fc4a184952fba4a1d074d1"
+  },
+  "name": "Saturday night",
+  "members": [
+    {
+      "$oid": "67fc47504952fba4a1d07342"
+    },
+    {
+      "$oid": "67fc48334952fba4a1d073a1"
+    },
+    {
+      "$oid": "67fc48c54952fba4a1d073f5"
+    }
+  ],
+  "admin": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "messages": [
+    {
+      "$oid": "67fc4a184952fba4a1d074d3"
+    }
+  ],
+  "createdAt": {
+    "$date": "2025-04-13T23:21:34.189Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:34:48.068Z"
+  },
+  "isDeleted": false,
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "67fc4b0b4952fba4a1d0753a"
+  },
+  "name": "Online games",
+  "members": [
+    {
+      "$oid": "67fc47194952fba4a1d0732e"
+    },
+    {
+      "$oid": "67fc48334952fba4a1d073a1"
+    },
+    {
+      "$oid": "67fc48c54952fba4a1d073f5"
+    }
+  ],
+  "admin": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "messages": [
+    {
+      "$oid": "67fc4b0b4952fba4a1d0753c"
+    },
+    {
+      "$oid": "67fc4b4f4952fba4a1d0757c"
+    },
+    {
+      "$oid": "67fc4beb4952fba4a1d07624"
+    }
+  ],
+  "createdAt": {
+    "$date": "2025-04-13T23:21:34.189Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:42:35.410Z"
+  },
+  "isDeleted": false,
+  "__v": 1
+},
+{
+  "_id": {
+    "$oid": "67fc4bc14952fba4a1d0760e"
+  },
+  "name": "FRYDAY NIGHT DINNER",
+  "members": [
+    {
+      "$oid": "67fc47194952fba4a1d0732e"
+    },
+    {
+      "$oid": "67fc47504952fba4a1d07342"
+    },
+    {
+      "$oid": "67fc48c54952fba4a1d073f5"
+    }
+  ],
+  "admin": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "messages": [
+    {
+      "$oid": "67fc4bc14952fba4a1d07610"
+    }
+  ],
+  "createdAt": {
+    "$date": "2025-04-13T23:21:34.189Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:41:53.071Z"
+  },
+  "isDeleted": false,
+  "__v": 1
+}]

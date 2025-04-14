@@ -9,14 +9,13 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-// Array di URL degli avatar
+// Array of avatar images
 export const avatars = [man1, man, girl1, girl];
 
-// Accetta un indice avatar
-// Se è valido (0-3) restituisce l'avatar corrispondente da avatars
+// Accepts an avatar index (0-3) and returns the corresponding avatar image
 export const getAvatar = (avatarIndex) => {
   if (avatarIndex >= 0 && avatarIndex < avatars.length) {
     return avatars[avatarIndex];
   }
-  return avatars[0]; // Default in caso di errore
+  return avatars[0]; // Default
 };

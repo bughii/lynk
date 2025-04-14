@@ -13,6 +13,7 @@ import {
   FaCheck,
   FaUsers,
   FaUserPlus,
+  FaBan,
 } from "react-icons/fa";
 import {
   Dialog,
@@ -35,11 +36,11 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 function CreateGroup() {
-  // Stati per gestire i dialoghi
+  // States for managing dialogs
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [showMembersStep, setShowMembersStep] = useState(false);
 
-  // Stati per i dati del gruppo
+  // States for group data
   const [groupName, setGroupName] = useState("");
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,11 +53,16 @@ function CreateGroup() {
     searchFriends,
     resetSearchedFriends,
   } = useFriendStore();
-  const { addGroup } = useChatStore();
+
+  // Get the blocked users information from the chat store
+  const blockedUsers = useChatStore((state) => state.blockedUsers || []);
+  const blockedByUsers = useChatStore((state) => state.blockedByUsers || []);
+  const addGroup = useChatStore((state) => state.addGroup);
+
   const { t } = useTranslation();
   const socket = useSocket();
 
-  // Carica gli amici quando si apre il dialogo per selezionare i membri
+  // Load friends when the dialog opens for member selection
   useEffect(() => {
     if (showMembersStep) {
       setIsLoading(true);
@@ -66,13 +72,13 @@ function CreateGroup() {
     }
   }, [showMembersStep, fetchFriends]);
 
-  // Resetta tutto quando si chiude il dialogo principale
+  // Reset everything when dialog closes
   const handleDialogClose = () => {
     setOpenCreateDialog(false);
     resetForm();
   };
 
-  // Reset di tutti gli stati
+  // Reset form state
   const resetForm = () => {
     setGroupName("");
     setSelectedFriends([]);
@@ -81,7 +87,7 @@ function CreateGroup() {
     resetSearchedFriends();
   };
 
-  // Passa al secondo step se il nome del gruppo è valido
+  // Move to next step if group name is valid
   const handleNextStep = () => {
     if (!groupName.trim()) {
       toast.error(t("mainpage.groups.groupNameRequired"));
@@ -90,12 +96,12 @@ function CreateGroup() {
     setShowMembersStep(true);
   };
 
-  // Torna al primo step
+  // Return to first step
   const handleBackToNameStep = () => {
     setShowMembersStep(false);
   };
 
-  // Gestione della ricerca amici
+  // Handle friend search
   const handleSearchFriends = async (e) => {
     const term = e.target.value;
     setSearchTerm(term);
@@ -107,10 +113,25 @@ function CreateGroup() {
     }
   };
 
-  // Visualizza gli amici filtrati o tutti gli amici
-  const displayedFriends = searchTerm ? searchedFriendsList : friends;
+  // Filter out blocked users from the friends list
+  const getFilteredFriends = () => {
+    // Start with either search results or all friends
+    const displayedFriends = searchTerm ? searchedFriendsList : friends;
 
-  // Gestione della selezione di un amico
+    // If no displayed friends, return empty array
+    if (!displayedFriends || !Array.isArray(displayedFriends)) return [];
+
+    // Combine both directions of blocking
+    const allBlockedIds = [...blockedUsers, ...blockedByUsers];
+
+    // No blocked users, return the original list
+    if (allBlockedIds.length === 0) return displayedFriends;
+
+    // Filter out any users that are in the blocked lists
+    return displayedFriends.filter((user) => !allBlockedIds.includes(user._id));
+  };
+
+  // Toggle friend selection
   const toggleFriendSelection = (friend) => {
     setSelectedFriends((prev) => {
       const isSelected = prev.some((f) => f._id === friend._id);
@@ -123,7 +144,7 @@ function CreateGroup() {
     });
   };
 
-  // Creazione finale del gruppo
+  // Create the group
   const handleCreateGroup = async () => {
     if (!groupName || selectedFriends.length === 0) {
       toast.error(t("mainpage.groups.createGroupValidationError"));
@@ -152,10 +173,24 @@ function CreateGroup() {
         toast.success(t("mainpage.groups.createGroupSuccess"));
       }
     } catch (error) {
+      if (error.response?.data?.blockedUsernames) {
+        // Show specific error for blocked users
+        toast.error(
+          `${t("block.cannotAddBlocked")}: ${
+            error.response.data.blockedUsernames
+          }`
+        );
+      } else {
+        toast.error(t("mainpage.groups.createGroupError"));
+      }
       console.error("Error creating group:", error.response?.data || error);
-      toast.error(t("mainpage.groups.createGroupError"));
     }
   };
+
+  // Get the filtered friends and check if any were filtered due to blocks
+  const filteredFriends = getFilteredFriends();
+  const totalFriends = searchTerm ? searchedFriendsList.length : friends.length;
+  const hasBlockedUsers = filteredFriends.length < totalFriends;
 
   return (
     <>
@@ -176,7 +211,7 @@ function CreateGroup() {
       <Dialog open={openCreateDialog} onOpenChange={handleDialogClose}>
         <DialogContent className="bg-[#1b1c24] border-none text-white w-[90vw] max-w-[450px] max-h-[85vh] flex flex-col space-mono-regular">
           {!showMembersStep ? (
-            // STEP 1: Nome del gruppo
+            // STEP 1: Group name
             <>
               <DialogHeader className="py-4 border-b border-[#2f303b]">
                 <DialogTitle className="text-center text-lg font-medium flex items-center justify-center">
@@ -209,7 +244,7 @@ function CreateGroup() {
               </div>
             </>
           ) : (
-            // STEP 2: Selezione membri
+            // STEP 2: Member selection
             <>
               <DialogHeader className="py-4 border-b border-[#2f303b]">
                 <DialogTitle className="text-center text-lg font-medium flex items-center justify-center">
@@ -242,6 +277,14 @@ function CreateGroup() {
                     size={16}
                   />
                 </div>
+
+                {/* Show notification when some users are filtered out due to blocking */}
+                {hasBlockedUsers && (
+                  <div className="bg-amber-900/20 text-amber-400 text-xs px-3 py-2 rounded-md mb-3 flex items-center">
+                    <FaBan className="mr-2 flex-shrink-0" size={12} />
+                    <span>{t("block.blockedUsersExcluded")}</span>
+                  </div>
+                )}
               </div>
 
               <ScrollArea className="flex-grow px-4 pb-4 h-[300px]">
@@ -249,7 +292,7 @@ function CreateGroup() {
                   <div className="flex items-center justify-center p-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#126319]"></div>
                   </div>
-                ) : displayedFriends.length === 0 ? (
+                ) : filteredFriends.length === 0 ? (
                   <div className="p-6 text-center text-gray-400 flex flex-col items-center">
                     <FaUserFriends className="text-gray-500 mb-3" size={32} />
                     <p>
@@ -260,7 +303,7 @@ function CreateGroup() {
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    {displayedFriends.map((friend) => {
+                    {filteredFriends.map((friend) => {
                       const isSelected = selectedFriends.some(
                         (f) => f._id === friend._id
                       );

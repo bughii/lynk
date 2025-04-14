@@ -47,6 +47,9 @@
     "resetSuccessText": "La tua password è stata reimpostata con successo. Ora puoi accedere con la tua nuova password.",
     "passwordResetError": "Errore durante il reset della password"
   },
+  "messageBar": {
+    "writeMessage": "Write a message"
+  },
   "emailVerification": {
     "title": "Verifica la tua email",
     "description": "Inserisci il codice di 6 cifre inviato alla tua email",
@@ -234,6 +237,14 @@
     "noMediaShared": "Nessun media condiviso in questo gruppo",
     "viewMedia": "Visualizza Media Condivisi"
   },
+  "chatPreview": {
+    "emptyChats": "Nessuna chat disponibile",
+    "previewPlaceholder": "Inizia a chattare"
+  },
+  "groupPreview": {
+    "emptyGroups": "Nessun gruppo disponibile",
+    "previewPlaceholder": "Chat di gruppo"
+  },
   "common": {
     "back": "Indietro",
     "download": "Download",
@@ -245,6 +256,7 @@
     "confirmActionDescription": "Sei sicuro di voler procedere con questa azione?"
   },
   "notifications": {
+    "groupCreated": "Gruppo creato",
     "groupDeletedByAdmin": "Questo gruppo è stato eliminato dall'amministratore",
     "addedToGroup": "Sei stato aggiunto al gruppo: {groupName}",
     "membersAddedToGroup": "Nuovi membri sono stati aggiunti al gruppo: {groupName}",
@@ -293,6 +305,7 @@
     "youWereUnblocked": "Sei stato sbloccato da un utente",
     "noBlockedUsers": "Non hai bloccato nessun utente",
     "blockedUsers": "Utenti Bloccati",
+    "blockedUsersExcluded": "Gli utenti bloccati non sono inclusi nei risultati di ricerca",
     "blocking": {
       "bothDirections": "Hai bloccato questo utente. I messaggi non saranno scambiati in nessuna direzione."
     },

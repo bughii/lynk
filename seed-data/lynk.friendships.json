@@ -1,0 +1,114 @@
+[{
+  "_id": {
+    "$oid": "67fc47794952fba4a1d07358"
+  },
+  "requester": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "status": "accepted",
+  "createdAt": {
+    "$date": "2025-04-13T23:23:37.621Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:23:50.239Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc48734952fba4a1d073c0"
+  },
+  "requester": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "status": "accepted",
+  "createdAt": {
+    "$date": "2025-04-13T23:27:47.920Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:27:54.324Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc48744952fba4a1d073c3"
+  },
+  "requester": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "recipient": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "status": "accepted",
+  "createdAt": {
+    "$date": "2025-04-13T23:27:48.437Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:33:24.546Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc49274952fba4a1d07413"
+  },
+  "requester": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "recipient": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "status": "accepted",
+  "createdAt": {
+    "$date": "2025-04-13T23:30:47.657Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:30:57.800Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc49284952fba4a1d07416"
+  },
+  "requester": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "recipient": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "status": "accepted",
+  "createdAt": {
+    "$date": "2025-04-13T23:30:48.218Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:33:25.420Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "67fc49284952fba4a1d07419"
+  },
+  "requester": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "recipient": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "status": "accepted",
+  "createdAt": {
+    "$date": "2025-04-13T23:30:48.826Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:32:20.931Z"
+  },
+  "__v": 0
+}]

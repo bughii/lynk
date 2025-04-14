@@ -1,14 +1,10 @@
 import { create } from "zustand";
 import axios from "axios";
 import { persist, createJSONStorage } from "zustand/middleware";
-import io from "socket.io-client";
 
 const API_URL = "http://localhost:9001/api/groups";
 
-// A persistent store was needed to keep the unread messages count saved in the local storage of the browser.
-// The local persistence is useful but not enough to manage the received messages when an user is offline
-// This store is synchronized with both client (SocketContext) and server (socket.js)
-
+// A persistent store for chat state including unread message counts
 export const useChatStore = create(
   persist(
     (set, get) => ({
@@ -23,11 +19,6 @@ export const useChatStore = create(
       blockedUsers: [], // Users blocked by the current user
       blockedByUsers: [], // Users who have blocked the current user
 
-      // Method to set the socket connection in the store
-      setSocket: (socket) => {
-        set({ socket });
-      },
-
       // Chat customization options
       chatColors: {
         sentMessageColor: "#3B82F6",
@@ -36,14 +27,19 @@ export const useChatStore = create(
       },
       language: "en",
 
+      // Socket accessor/setter
+      setSocket: (socket) => set({ socket }),
+
+      // Block-related methods
       setBlockedUsers: (blockedUsers) => set({ blockedUsers }),
       setBlockedByUsers: (blockedByUsers) => set({ blockedByUsers }),
 
+      // Refresh the selected chat data to force a re-render.
+      // This function only updates the selected chat object (when chatting with a friend)
+      // by appending a new _refreshTimestamp.
       refreshSelectedChat: () => {
         const { selectedChatType, selectedChatData } = get();
-
         if (selectedChatType === "friend" && selectedChatData) {
-          // This will trigger a re-render of components using this state
           set({
             selectedChatData: {
               ...selectedChatData,
@@ -53,10 +49,17 @@ export const useChatStore = create(
         }
       },
 
+      // Block management methods
       addBlockedUser: (userId) =>
-        set((state) => ({
-          blockedUsers: [...state.blockedUsers, userId],
-        })),
+        set((state) => {
+          // Only add if not already in the list
+          if (!state.blockedUsers.includes(userId)) {
+            return {
+              blockedUsers: [...state.blockedUsers, userId],
+            };
+          }
+          return state;
+        }),
 
       removeBlockedUser: (userId) =>
         set((state) => ({
@@ -64,212 +67,157 @@ export const useChatStore = create(
         })),
 
       addBlockedByUser: (userId) =>
-        set((state) => ({
-          blockedByUsers: [...state.blockedByUsers, userId],
-        })),
+        set((state) => {
+          // Only add if not already in the list
+          if (!state.blockedByUsers.includes(userId)) {
+            return {
+              blockedByUsers: [...state.blockedByUsers, userId],
+            };
+          }
+          return state;
+        }),
 
       removeBlockedByUser: (userId) =>
         set((state) => ({
           blockedByUsers: state.blockedByUsers.filter((id) => id !== userId),
         })),
 
-      fetchBlockedUsers: async () => {
-        try {
-          const response = await apiClient.get("/api/block/list");
-          if (response.status === 200) {
-            set({
-              blockedUsers: response.data.blockedUsers.map((user) => user._id),
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching blocked users:", error);
-        }
-      },
-
-      isUserBlocked: (userId) => {
-        const state = get();
-        return (
-          state.blockedUsers.includes(userId) ||
-          state.blockedByUsers.includes(userId)
-        );
-      },
-
-      userHasBlocked: (userId) => {
-        const state = get();
-        return state.blockedUsers.includes(userId);
-      },
-
-      userIsBlocked: (userId) => {
-        const state = get();
-        return state.blockedByUsers.includes(userId);
-      },
-
-      // This ensure synchronization of unread messages count across devices
-      // Using the max ensures all unread messages are counted, avoiding data loss or undercounting
+      // Merging helper for unread counts (takes max values)
       mergeUnreadCounts: (localCount, serverCount) => {
-        // Takes the server count as the base
+        // Create a new object for the merged result
         const mergedCount = { ...serverCount };
-        // Merge local count with server count by taking the maximum value between the two
-        Object.entries(localCount).forEach(([key, localValue]) => {
-          mergedCount[key] = Math.max(localValue, serverCount[key] || 0);
+        // For each key in localCount, take the max value between local and server
+        Object.keys(localCount).forEach((key) => {
+          const localValue = parseInt(localCount[key] || 0);
+          const serverValue = parseInt(serverCount[key] || 0);
+          mergedCount[key] = Math.max(localValue, serverValue);
         });
         return mergedCount;
       },
 
-      // Initialize the socket connection and listen for events
-      initializeSocket: (userId) => {
-        const socket = io("http://localhost:9001", {
-          query: { userId },
-          withCredentials: true,
+      // Reset unread count for direct messages
+      resetUnreadCount: (senderId) => {
+        if (!senderId) {
+          console.warn("Cannot reset unread count: No sender ID provided");
+          return;
+        }
+        const socket = get().socket;
+        // Update local state immediately
+        set((state) => {
+          const newCount = { ...state.unreadMessagesCount };
+          delete newCount[senderId];
+
+          // Notify server about this reset if socket exists
+          if (socket && socket.connected) {
+            console.log(
+              `Notifying server to reset count for sender: ${senderId}`
+            );
+            socket.emit("resetSingleUnreadCount", { senderId });
+          }
+          return { unreadMessagesCount: newCount };
         });
-
-        // Listen for connection event
-        socket.on("connect", () => {
-          // Fetch unread counts from server during connection
-          socket.emit("fetchUnreadCounts", userId);
-        });
-
-        // Use the new merge method for unread messages
-        socket.on("unreadMessagesState", (serverUnreadMessages) => {
-          const localUnreadMessages = get().unreadMessagesCount || {};
-
-          const mergedUnreadMessages = get().mergeUnreadCounts(
-            localUnreadMessages,
-            serverUnreadMessages
-          );
-
-          set({ unreadMessagesCount: mergedUnreadMessages });
-        });
-
-        // Similar approach for group messages
-        socket.on("unreadGroupMessagesState", (serverUnreadGroupMessages) => {
-          const localUnreadGroups = get().unreadGroupMessagesCount || {};
-
-          const mergedUnreadGroups = get().mergeUnreadCounts(
-            localUnreadGroups,
-            serverUnreadGroupMessages
-          );
-
-          set({ unreadGroupMessagesCount: mergedUnreadGroups });
-        });
-
-        set({ socket });
       },
 
-      // Sends local unread messages count to the server for synchronization
+      // Reset unread count for group messages
+      resetGroupUnreadCount: (groupId) => {
+        if (!groupId) {
+          console.warn("Cannot reset group unread count: No group ID provided");
+          return;
+        }
+        const socket = get().socket;
+        // Update local state immediately
+        set((state) => {
+          const newCount = { ...state.unreadGroupMessagesCount };
+          delete newCount[groupId];
+
+          // Notify server about this reset if socket exists
+          if (socket && socket.connected) {
+            console.log(
+              `Notifying server to reset count for group: ${groupId}`
+            );
+            socket.emit("resetSingleGroupUnreadCount", { groupId });
+          }
+          return { unreadGroupMessagesCount: newCount };
+        });
+      },
+
+      // Initialize the socket connection
+      initializeSocket: (userId) => {
+        // Moved the handling to SocketContext
+        console.log("Socket initialization is now handled by SocketContext");
+      },
+
+      // Sync unread counts with the server
       syncUnreadMessagesWithServer: () => {
         const socket = get().socket;
         const { unreadMessagesCount, unreadGroupMessagesCount } = get();
-
-        if (socket) {
-          // Emit current unread counts to server for synchronization
+        if (socket && socket.connected) {
+          console.log("Manually syncing unread counts with server");
           socket.emit("syncUnreadCounts", {
             unreadMessagesCount,
             unreadGroupMessagesCount,
           });
+        } else {
+          console.warn("Cannot sync counts - socket not connected");
         }
       },
 
-      resetUnreadCount: (senderId) => {
-        const socket = get().socket;
-        if (socket) {
-          // Notify the server to reset the unread count for the sender
-          socket.emit("resetUnreadCount", {
-            senderId,
-            timestamp: Date.now(), // Add a timestamp to ensure latest reset
-          });
-
-          set((state) => {
-            const newCount = { ...state.unreadMessagesCount };
-
-            // Remove the sender from the unread messages count
-            delete newCount[senderId];
-
-            return { unreadMessagesCount: newCount };
-          });
-        }
-      },
-
-      resetGroupUnreadCount: (groupId) => {
-        const socket = get().socket;
-        if (socket) {
-          socket.emit("resetGroupUnreadCount", {
-            groupId,
-            timestamp: Date.now(), // Add a timestamp to ensure latest reset
-          });
-
-          set((state) => {
-            const newCount = { ...state.unreadGroupMessagesCount };
-
-            // Remove the group from the unread group messages count
-            delete newCount[groupId];
-
-            return { unreadGroupMessagesCount: newCount };
-          });
-        }
-      },
-
+      // Increment unread count for direct messages
       incrementUnreadCount: (senderId) => {
-        const socket = get().socket;
-        if (socket) {
-          socket.emit("incrementUnreadCount", senderId);
-        }
         set((state) => {
           const newCount = {
             ...state.unreadMessagesCount,
             [senderId]: (state.unreadMessagesCount[senderId] || 0) + 1,
           };
-          return {
-            unreadMessagesCount: newCount,
-            syncUnreadMessagesWithServer: true,
-          };
+          return { unreadMessagesCount: newCount };
         });
       },
 
+      // Increment unread count for group messages
       incrementGroupUnreadCount: (groupId) => {
-        const socket = get().socket;
-        if (socket) {
-          socket.emit("incrementGroupUnreadCount", groupId);
-        }
+        console.log(`Incrementing local unread count for group: ${groupId}`);
         set((state) => {
           const newCount = {
             ...state.unreadGroupMessagesCount,
             [groupId]: (state.unreadGroupMessagesCount[groupId] || 0) + 1,
           };
-          return {
-            unreadGroupMessagesCount: newCount,
-            syncUnreadMessagesWithServer: true,
-          };
+          return { unreadGroupMessagesCount: newCount };
         });
       },
 
+      // Update chat appearance settings
       updateChatColors: (colors) =>
         set((state) => ({
           chatColors: { ...state.chatColors, ...colors },
         })),
 
+      // Set UI language
       setLanguage: (language) => set({ language }),
 
-      setGroups: (newGroups) =>
-        set((state) => {
-          console.log("Setting groups in store:", newGroups);
-          return { groups: newGroups };
-        }),
-
+      // Set state methods for groups, selected chat, etc.
+      setGroups: (newGroups) => set({ groups: newGroups }),
       setSelectedChatType: (selectedChatType) => set({ selectedChatType }),
       setSelectedChatData: (selectedChatData) => set({ selectedChatData }),
-
       setSelectedChatMessages: (selectedChatMessages) =>
         set({ selectedChatMessages }),
-
       setDirectMessagesFriends: (directMessagesFriends) =>
         set({ directMessagesFriends }),
 
+      setUnreadMessagesCount: (newCount) =>
+        set({ unreadMessagesCount: newCount }),
+      setUnreadGroupMessagesCount: (newCount) =>
+        set({ unreadGroupMessagesCount: newCount }),
+
+      setUnreadGroupMessagesState: (newCount) =>
+        set({ unreadGroupMessagesCount: newCount }),
+
+      // Add a group to the list
       addGroup: (group) =>
         set((state) => ({
-          groups: [...state.groups, group],
+          groups: [group, ...state.groups],
         })),
 
+      // Close the current chat
       closeChat: () =>
         set({
           selectedChatData: undefined,
@@ -277,10 +225,10 @@ export const useChatStore = create(
           selectedChatMessages: [],
         }),
 
+      // Add a message to the current chat
       addMessage: (message) => {
         const selectedChatMessages = get().selectedChatMessages;
         const selectedChatType = get().selectedChatType;
-
         set({
           selectedChatMessages: [
             ...selectedChatMessages,
@@ -288,24 +236,22 @@ export const useChatStore = create(
               ...message,
               recipient:
                 selectedChatType === "group"
-                  ? message.recipient || null // Handle missing recipient for groups
-                  : message.recipient?._id || null, // Handle direct messages safely
+                  ? message.recipient || null
+                  : message.recipient?._id || null,
               sender:
                 selectedChatType === "group"
-                  ? message.sender || null // Use sender directly for groups
-                  : message.sender?._id || null, // Handle direct messages safely
+                  ? message.sender || null
+                  : message.sender?._id || null,
             },
           ],
         });
-
-        console.log("Message added to chat:", message);
       },
 
+      // Fetch user groups from the server
       fetchUserGroups: async () => {
         try {
           const response = await axios.get(`${API_URL}/get-user-groups`);
           if (response.data.groups) {
-            // Aggiungi isActive: true a tutti i gruppi caricati
             const groupsWithActive = response.data.groups.map((group) => ({
               ...group,
               isActive: true,
@@ -318,12 +264,7 @@ export const useChatStore = create(
         }
       },
 
-      setUnreadMessagesCount: (newCount) =>
-        set({ unreadMessagesCount: newCount }),
-
-      setUnreadGroupMessagesState: (unreadState) =>
-        set({ unreadGroupMessagesCount: unreadState }),
-
+      // Calculate total unread count across all chats
       getTotalUnreadCount: () => {
         const { unreadMessagesCount, unreadGroupMessagesCount } = get();
         const directCount = Object.values(unreadMessagesCount).reduce(
@@ -337,33 +278,35 @@ export const useChatStore = create(
         return directCount + groupCount;
       },
 
+      // Debug state
       debugState: () => {
         const state = get();
         console.log("Current Chat Store State:", {
           selectedChatData: state.selectedChatData,
           selectedChatType: state.selectedChatType,
           unreadMessagesCount: state.unreadMessagesCount,
+          unreadGroupMessagesCount: state.unreadGroupMessagesCount,
           totalUnreadCount: state.getTotalUnreadCount(),
         });
       },
 
+      // Update group ordering after new message
       updateGroupList: (message) => {
         const groups = get().groups;
         const data = groups.find((group) => group._id === message.groupId);
         const index = groups.findIndex(
           (group) => group._id === message.groupId
         );
-
         if (index !== -1 && index !== undefined) {
           groups.splice(index, 1);
           groups.unshift(data);
         }
       },
 
+      // Remove a group completely
       removeGroup: (groupId) =>
         set((state) => ({
           groups: state.groups.filter((group) => group._id !== groupId),
-          // Se la chat selezionata è quella rimossa, chiudi la chat
           selectedChatType:
             state.selectedChatType === "group" &&
             state.selectedChatData?._id === groupId
@@ -381,6 +324,7 @@ export const useChatStore = create(
               : state.selectedChatMessages,
         })),
 
+      // Mark a group as deleted (but keep in list)
       markGroupAsDeleted: (groupId) =>
         set((state) => ({
           groups: state.groups.map((group) =>
@@ -390,32 +334,30 @@ export const useChatStore = create(
           ),
         })),
 
+      // Mark a group as inactive
       markGroupAsInactive: (groupId) =>
         set((state) => {
           const groupIndex = state.groups.findIndex(
             (group) => group._id === groupId
           );
           if (groupIndex === -1) return state;
-
           const updatedGroups = [...state.groups];
           updatedGroups[groupIndex] = {
             ...updatedGroups[groupIndex],
             isActive: false,
           };
-
-          // Se la chat selezionata è quella disattivata, aggiorna anche selectedChatData
           const updatedSelectedChatData =
             state.selectedChatType === "group" &&
             state.selectedChatData?._id === groupId
               ? { ...state.selectedChatData, isActive: false }
               : state.selectedChatData;
-
           return {
             groups: updatedGroups,
             selectedChatData: updatedSelectedChatData,
           };
         }),
 
+      // Add a system message to the current chat
       addSystemMessage: (message) =>
         set((state) => ({
           selectedChatMessages: [
@@ -427,26 +369,23 @@ export const useChatStore = create(
           ],
         })),
 
+      // Update a group with new properties
       updateGroup: (groupId, updates) =>
         set((state) => {
           const groupIndex = state.groups.findIndex(
             (group) => group._id === groupId
           );
           if (groupIndex === -1) return state;
-
           const updatedGroups = [...state.groups];
           updatedGroups[groupIndex] = {
             ...updatedGroups[groupIndex],
             ...updates,
           };
-
-          // Se la chat selezionata è quella aggiornata, aggiorna anche selectedChatData
           const updatedSelectedChatData =
             state.selectedChatType === "group" &&
             state.selectedChatData?._id === groupId
               ? { ...state.selectedChatData, ...updates }
               : state.selectedChatData;
-
           return {
             groups: updatedGroups,
             selectedChatData: updatedSelectedChatData,
@@ -461,24 +400,9 @@ export const useChatStore = create(
         language: state.language,
         unreadMessagesCount: state.unreadMessagesCount,
         unreadGroupMessagesCount: state.unreadGroupMessagesCount,
+        blockedUsers: state.blockedUsers,
+        blockedByUsers: state.blockedByUsers,
       }),
-      onRehydrate: (state) => {
-        // Retrieve the stored state from localstorage
-        const storedState =
-          JSON.parse(localStorage.getItem("chat-storage")) || {};
-
-        // Extract the unread messages count from the stored state
-        const localUnreadMessages = storedState.unreadMessagesCount || {};
-        const localUnreadGroupMessages =
-          storedState.unreadGroupMessagesCount || {};
-
-        // Temporarily store local data in memory without setting it to the store
-        // Until the server state is received and merged
-        state.rehydratedUnreadMessages = localUnreadMessages;
-        state.rehydratedUnreadGroupMessages = localUnreadGroupMessages;
-
-        console.log("Temporarily storing rehydrated counts for later merge...");
-      },
     }
   )
 );

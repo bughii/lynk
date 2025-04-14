@@ -86,35 +86,67 @@ function MessageContainer() {
     }
   }, [selectedChatMessages, selectedChatData]);
 
-  const renderSystemMessage = (message) => (
-    <div className="text-center my-6">
-      <p className="text-red-400 font-medium">{message.content}</p>
-    </div>
-  );
+  const renderSystemMessage = (message) => {
+    let translatedContent = message.content;
+
+    // Apply translations if needed
+    if (message.content === "Group created") {
+      translatedContent = t("notifications.groupCreated");
+    } else if (message.content === "Group deleted") {
+      translatedContent = t("notifications.groupDeletedByAdmin");
+    }
+
+    return (
+      <div className="flex justify-center my-4">
+        <div className="bg-[#3b3c48]/30 rounded-md px-4 py-2 max-w-[85%] text-center">
+          <p className="text-gray-300 text-sm font-medium">
+            {translatedContent}
+          </p>
+          {message.timestamp && (
+            <span className="text-xs text-gray-500 mt-1 block">
+              {moment(message.timestamp).format("LT")}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderMessages = () => {
     let lastDate = null;
-
-    // Iterate through the messages and render them with date dividers
     return selectedChatMessages.map((message, index) => {
       const messageDate = moment(message.timestamp).format("YYYY-MM-DD");
       const showDate = messageDate !== lastDate;
       lastDate = messageDate;
 
-      return (
-        <div key={index}>
-          {showDate && (
-            <div className="text-center text-gray-500 my-2">
-              {moment(message.timestamp).format("LL")}
-            </div>
-          )}
-          {message.isSystem
-            ? renderSystemMessage(message)
-            : selectedChatType === "friend"
-            ? renderDMMessages(message)
-            : renderGroupMessages(message)}
-        </div>
-      );
+      // Check for system flag in both potential locations:
+      const isSystemMessage = message.isSystem || message.appearance?.isSystem;
+
+      if (isSystemMessage) {
+        return (
+          <div key={index}>
+            {showDate && (
+              <div className="text-center text-gray-500 my-2">
+                {moment(message.timestamp).format("LL")}
+              </div>
+            )}
+            {renderSystemMessage(message)}
+          </div>
+        );
+      } else {
+        return (
+          <div key={index}>
+            {showDate && (
+              <div className="text-center text-gray-500 my-2">
+                {moment(message.timestamp).format("LL")}
+              </div>
+            )}
+            {selectedChatType === "friend"
+              ? renderDMMessages(message)
+              : renderGroupMessages(message)}
+          </div>
+        );
+      }
     });
   };
 

@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useBlockStatus } from "@/hooks/useBlockStatus";
 import { useSocket } from "@/context/SocketContext";
+import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
+import { useChatStore } from "@/store/chatStore";
 import {
   Dialog,
   DialogContent,
@@ -14,40 +16,125 @@ import { Button } from "@/components/ui/button";
 import { FaBan, FaUserSlash, FaUnlock } from "react-icons/fa";
 
 /**
- * Dialog component to manage blocking/unblocking a user
- *
- * @param {Object} props - Component props
- * @param {boolean} props.open - Whether the dialog is open
- * @param {Function} props.onOpenChange - Function to change open state
- * @param {string} props.userId - ID of the user to block/unblock
- * @param {string} props.userName - Name of the user to block/unblock
+ * Dialog component to manage blocking/unblocking a user with instant UI updates
  */
 function BlockUserDialog({ open, onOpenChange, userId, userName }) {
   const { t } = useTranslation();
   const socket = useSocket();
   const [isConfirming, setIsConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Get chat store methods
   const {
-    loading,
-    userHasBlocked,
-    userIsBlocked,
-    blockUser,
-    unblockUser,
-    refreshStatus,
-  } = useBlockStatus(userId);
+    blockedUsers,
+    blockedByUsers,
+    addBlockedUser,
+    removeBlockedUser,
+    refreshSelectedChat,
+    setSelectedChatData,
+    selectedChatData,
+  } = useChatStore();
+
+  // Check current block status
+  const userHasBlocked = blockedUsers.includes(userId);
+  const userIsBlocked = blockedByUsers.includes(userId);
+
+  // Listen for block action completion confirmations
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleBlockActionComplete = (data) => {
+      if (data.targetUserId === userId) {
+        // Force refresh the UI if it's the current chat
+        if (selectedChatData && selectedChatData._id === userId) {
+          // Force a complete redraw by updating the chat data
+          setSelectedChatData({
+            ...selectedChatData,
+            _blockActionCompleted: Date.now(),
+          });
+        }
+      }
+    };
+
+    socket.on("blockActionComplete", handleBlockActionComplete);
+    return () => socket.off("blockActionComplete", handleBlockActionComplete);
+  }, [socket, userId, selectedChatData, setSelectedChatData]);
 
   const handleBlock = async () => {
-    const success = await blockUser();
-    if (success && socket) {
-      socket.emit("userBlocked", { blockedUserId: userId });
-      setIsConfirming(false);
+    setLoading(true);
+    try {
+      const response = await apiClient.post("/api/block/block", {
+        blockedUserId: userId,
+      });
+
+      if (response.status === 201) {
+        // Update local store state
+        addBlockedUser(userId);
+
+        // Force UI refresh by updating the chat data with the new block status
+        if (selectedChatData && selectedChatData._id === userId) {
+          setSelectedChatData({
+            ...selectedChatData,
+            _isBlocked: true,
+            _blockTimestamp: Date.now(),
+          });
+        }
+
+        // Notify other user via socket
+        if (socket) {
+          socket.emit("userBlocked", { blockedUserId: userId });
+        }
+
+        toast.success(t("block.userBlocked"));
+
+        // Close dialogs
+        setIsConfirming(false);
+        onOpenChange(false);
+      }
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      toast.error(t("block.errorBlocking"));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleUnblock = async () => {
-    const success = await unblockUser();
-    if (success && socket) {
-      socket.emit("userUnblocked", { blockedUserId: userId });
-      setIsConfirming(false);
+    setLoading(true);
+    try {
+      const response = await apiClient.post("/api/block/unblock", {
+        blockedUserId: userId,
+      });
+
+      if (response.status === 200) {
+        // Update local store state
+        removeBlockedUser(userId);
+
+        // Force UI refresh by updating the chat data with the new block status
+        if (selectedChatData && selectedChatData._id === userId) {
+          setSelectedChatData({
+            ...selectedChatData,
+            _isBlocked: false,
+            _blockTimestamp: Date.now(),
+          });
+        }
+
+        // Notify other user via socket
+        if (socket) {
+          socket.emit("userUnblocked", { blockedUserId: userId });
+        }
+
+        toast.success(t("block.userUnblocked"));
+
+        // Close dialogs
+        setIsConfirming(false);
+        onOpenChange(false);
+      }
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      toast.error(t("block.errorUnblocking"));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -133,7 +220,7 @@ function BlockUserDialog({ open, onOpenChange, userId, userName }) {
           <div className="bg-red-900/20 p-4 rounded-md border border-red-800/30 mb-4">
             <div className="flex items-center text-red-400">
               <FaUserSlash className="mr-2" />
-              <p>{t("block.blocking.bothDirections", { name: userName })}</p>
+              <p>{t("block.blocking.bothDirections")}</p>
             </div>
           </div>
         )}

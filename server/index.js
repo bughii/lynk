@@ -19,14 +19,20 @@ const app = express();
 const port = process.env.PORT || 5005;
 const databaseURL = process.env.DATABASE_URL;
 
-// Cors config
 app.use(
   cors({
-    origin: [process.env.ORIGIN],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    origin: ["http://localhost", "http://client"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+
+// Add middleware to debug API requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url} called from ${req.ip}`);
+  next();
+});
 
 app.use("/uploads/profiles", express.static("uploads/profiles"));
 app.use("/uploads/files", express.static("uploads/files"));

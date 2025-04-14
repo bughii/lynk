@@ -1,24 +1,23 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import Profile from "@/pages/profile"; // Assuming Profile is the default export.
+import Profile from "@/pages/profile";
 import { toast } from "sonner";
 import { MemoryRouter } from "react-router-dom";
 
-// Mock dependencies
 vi.mock("@/store/authStore", () => ({
   useAuthStore: () => ({
     user: {
       userName: "testuser",
       email: "test@example.com",
       avatar: 1,
-      image: "mocked-image-path", // Ensure image is not null
+      image: "mocked-image-path",
       profileSetup: true,
     },
     updateProfile: vi.fn(async () => ({ status: 200 })),
     updateProfileImage: vi.fn(async () => ({
       status: 200,
-      data: { image: "mocked-image-path" }, // Aggiunta immagine nella risposta
+      data: { image: "mocked-image-path" },
     })),
     removeProfileImage: vi.fn(async () => ({ status: 200 })),
   }),
@@ -45,7 +44,6 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-// Selectively mock only useNavigate
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -131,7 +129,6 @@ describe("Profile Component", () => {
       // Log the actual calls to toast.success to debug
       console.log("toast.success.mock.calls:", toast.success.mock.calls);
 
-      // Use a more flexible assertion
       expect(toast.success).toHaveBeenCalledWith("Image updated successfully");
     });
   });

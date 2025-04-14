@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { IoArrowBack } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
-import { useTranslation, Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");

@@ -4,25 +4,28 @@ import { User } from "./models/UserModel.js";
 import { Group } from "./models/GroupModel.js";
 import { BlockedUser } from "./models/BlockedUserModel.js";
 
-// Setting up the server on which the websockets connections will be handled
+// Setting up the socket server for handling websocket connections
 const setupSocket = (server) => {
+  console.log("⚡ Initializing Socket.IO server in Docker environment");
   const io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.ORIGIN,
+      origin: ["http://localhost", "http://client"],
       methods: ["GET", "POST"],
       credentials: true,
     },
+    // Explicitly set path and allow all transports
+    path: "/socket.io/",
+    transports: ["websocket", "polling"],
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
 
-  // A map which keeps track of userId and socketId.
-  // Needed in order to know which socket is connected to which user
+  // Map to track which socket is connected to which user
   const userSocketMap = new Map();
 
-  // Handles the disconnection of a socket
+  // Handle disconnections by removing socket from map and updating user status
   const disconnect = (socket) => {
-    // Iterate through every pair of the map to find the userId associated with the disconnected socket
     for (const [userId, socketId] of userSocketMap.entries()) {
-      // Check if the ID of the current socket is equal to the socket that's passed as an argument
       if (socketId === socket.id) {
         userSocketMap.delete(userId);
         io.emit("userStatusUpdate", { userId, isOnline: false });
@@ -31,7 +34,7 @@ const setupSocket = (server) => {
     }
   };
 
-  // Handles the sending of a message
+  // Send chat message between users with blocking support
   const sendMessage = async (message) => {
     try {
       // Find socket connections
@@ -53,58 +56,75 @@ const setupSocket = (server) => {
         blockedBy = blockExists.blocker.toString();
       }
 
-      // Always save the message to database
+      // Always save message to database even if blocked
       const createdMessage = await Message.create({
         ...message,
         isBlocked,
         blockedBy: isBlocked ? blockedBy : undefined,
       });
 
-      // Populate the message
+      // Populate sender and recipient info
       const populatedMessage = await Message.findById(createdMessage._id)
         .populate("sender", "id email userName image avatar")
         .populate("recipient", "id email userName image avatar");
 
-      // ALWAYS send to the sender, with appropriate block info
+      // Always send to the sender, with block info
       if (senderSocketId) {
         const messageForSender = {
           ...populatedMessage.toObject(),
           isBlocked,
           blockedByUser: isBlocked && blockedBy === message.sender,
           blockedByRecipient: isBlocked && blockedBy === message.recipient,
-          // Add this flag to help with alignment
           isCurrentUserSender: true, // This user sent this message
         };
 
         io.to(senderSocketId).emit("receiveMessage", messageForSender);
       }
 
-      // For recipient message alignment
+      // Only send to recipient if not blocked
       if (!isBlocked && recipientSocketId) {
         const messageForRecipient = {
           ...populatedMessage.toObject(),
-          // Add this flag to help with alignment
           isCurrentUserSender: false, // This user received this message
         };
 
         io.to(recipientSocketId).emit("receiveMessage", messageForRecipient);
+
+        // Increment unread count for offline or different-tab recipients
+        const recipient = await User.findById(message.recipient);
+        if (recipient) {
+          // Create a copy of the unread messages count
+          const unreadMessagesCount =
+            { ...recipient.unreadMessagesCount } || {};
+
+          // Increment count for the sender
+          unreadMessagesCount[message.sender] =
+            (unreadMessagesCount[message.sender] || 0) + 1;
+
+          // Update user document with new count
+          await User.findByIdAndUpdate(
+            message.recipient,
+            { unreadMessagesCount },
+            { new: true }
+          );
+
+          console.log(
+            `Incremented unread count for ${message.sender} to recipient ${message.recipient}`
+          );
+        }
       }
-      // If blocked, no delivery occurs
     } catch (error) {
       console.error("Error sending message: ", error);
     }
   };
 
-  // Handles the sending of a group message
+  // Handle group messaging with membership validation
   const sendGroupMessage = async (message) => {
     try {
-      // Exctracting the proprieties from the message object
       const { groupId, sender, content, messageType, fileURL } = message;
 
-      // Check if the group with the provided groupId exists
+      // Validate group exists
       const group = await Group.findById(groupId);
-
-      // If not, log an error and emit a messageRejected event to the sender
       if (!group) {
         console.log(`Group ${groupId} not found`);
         const senderSocketId = userSocketMap.get(sender);
@@ -117,13 +137,13 @@ const setupSocket = (server) => {
         return;
       }
 
-      // Verify if the sender is either a member or the admin of the group
+      // Verify if user is member or admin
       const isMember =
         group.members.some(
           (member) => member.toString() === sender.toString()
         ) || group.admin.toString() === sender.toString();
 
-      // Retrieving the sender's data and checking if they have been removed from the group
+      // Check if user was removed from group
       const user = await User.findById(sender);
       const isRemovedFromGroup =
         user.removedGroups &&
@@ -132,12 +152,11 @@ const setupSocket = (server) => {
             item.groupId && item.groupId.toString() === groupId.toString()
         );
 
-      // If the sender is not a valid member or has been removed
+      // Reject message if user not in group or was removed
       if (!isMember || isRemovedFromGroup) {
         console.log(
           `Blocked message from ${sender} to group ${groupId}: User not in group or removed`
         );
-        // Notify the sender that the message was rejected
         const senderSocketId = userSocketMap.get(sender);
         if (senderSocketId) {
           io.to(senderSocketId).emit("messageRejected", {
@@ -148,22 +167,22 @@ const setupSocket = (server) => {
         return;
       }
 
-      // Creating a new message in the database
+      // Create message in database
       const createdMessage = await Message.create({
         sender,
-        recipient: null, // Group messages have no recipient, they are meant for a group
+        recipient: null, // Group messages have no recipient
         content,
         messageType,
         timestamp: Date.now(),
         fileURL,
       });
 
-      // Populate the sender field of the message
+      // Populate sender info
       const messageData = await Message.findById(createdMessage._id)
         .populate("sender", "id email userName image avatar")
         .exec();
 
-      // Adding the new message ID to the group's messages array and retrieving the updated group
+      // Add message to group's messages array
       const updatedGroup = await Group.findByIdAndUpdate(
         groupId,
         { $push: { messages: messageData._id } },
@@ -172,28 +191,28 @@ const setupSocket = (server) => {
 
       const finalData = { ...messageData._doc, groupId: updatedGroup._id };
 
-      // Tracking which members are online vs offline
+      // Track online vs offline members
       const onlineMembers = new Set();
       const offlineMembers = [];
 
-      // Creating a set of member IDs for quick lookup
+      // Create set of member IDs for lookup
       const memberIds = new Set(
         updatedGroup.members.map((m) => m._id.toString())
       );
 
-      // Emit the message to all online group members
+      // Send message to all online members
       updatedGroup.members.forEach((member) => {
         const memberSocketId = userSocketMap.get(member._id.toString());
         if (memberSocketId) {
           onlineMembers.add(member._id.toString());
           io.to(memberSocketId).emit("receiveGroupMessage", finalData);
         } else {
-          // Member is offline, add to offline members list
+          // Member is offline, add to list
           offlineMembers.push(member._id.toString());
         }
       });
 
-      // Ensuring that if the admin is not in the members list, he still receives the message
+      // Include admin if not already in members list
       const adminId = updatedGroup.admin._id.toString();
       if (!memberIds.has(adminId)) {
         const adminSocketId = userSocketMap.get(adminId);
@@ -205,16 +224,21 @@ const setupSocket = (server) => {
         }
       }
 
-      // Increment unread count for offline members, but don't increment for the sender
-      for (const memberId of offlineMembers) {
-        // Skip incrementing for the sender of the message
-        if (memberId === sender.toString()) continue;
+      // Increment unread count for offline members (not the sender)
+      let allMemberIds = updatedGroup.members.map((m) => m._id.toString());
+      if (!allMemberIds.includes(adminId)) {
+        allMemberIds.push(adminId);
+      }
 
+      // Update the unread group count in the DB for all group members except the sender
+      for (const memberId of allMemberIds) {
+        if (memberId === sender.toString()) continue; // skip the sender
         const user = await User.findById(memberId);
         if (user) {
-          // Create a copy of the current unread group messages count
-          const currentGroupCounts = { ...user.unreadGroupMessagesCount } || {};
-
+          // Create or clone the current unread group messages count
+          const currentGroupCounts = {
+            ...(user.unreadGroupMessagesCount || {}),
+          };
           // Increment the count for this group
           currentGroupCounts[groupId] = (currentGroupCounts[groupId] || 0) + 1;
 
@@ -224,9 +248,8 @@ const setupSocket = (server) => {
             { unreadGroupMessagesCount: currentGroupCounts },
             { new: true }
           );
-
           console.log(
-            `Incremented unread count for group ${groupId} for offline member ${memberId}`
+            `Incremented persistent unread group count for group ${groupId} for member ${memberId}`
           );
         }
       }
@@ -235,124 +258,184 @@ const setupSocket = (server) => {
     }
   };
 
+  // Socket connection handler
   io.on("connection", async (socket) => {
     // Get the userId from the query parameter
     const userId = socket.handshake.query.userId;
 
     if (userId) {
       try {
-        // Track the user's socket and set their online status
+        // Track the user's socket and set online status
         userSocketMap.set(userId, socket.id);
         await User.findByIdAndUpdate(userId, { isOnline: true });
         io.emit("userStatusUpdate", { userId, isOnline: true });
 
+        // Send initial unread counts to client
         const user = await User.findById(userId);
         if (user) {
-          socket.emit("unreadMessagesState", user.unreadMessagesCount || {});
           socket.emit(
-            "unreadGroupMessagesState",
+            "fullUnreadMessagesState",
+            user.unreadMessagesCount || {}
+          );
+          socket.emit(
+            "fullUnreadGroupMessagesState",
             user.unreadGroupMessagesCount || {}
           );
         }
 
-        /* Handler that ensures the unread counts are in sync between the client and server
-         * The client sends its current unread counts to the server, which then compares them
-         * with the server's values. The higher value is saved to the database and sent back
-         * to the client for consistency.
-         * This approach solves situations like:
-         * - User receives messages on the phone while he's on the web app
-         * - User loses connections and receives messages while offline
-         * - If, for some reason, the count is lost in any direction
-         */
-        socket.on("syncUnreadCounts", async (data) => {
+        // Single unread count reset for direct messages
+        socket.on("resetSingleUnreadCount", async (data) => {
           try {
+            const { senderId } = data;
+            if (!senderId) {
+              console.warn("Invalid senderId in resetSingleUnreadCount");
+              socket.emit("resetSingleUnreadCountAck", {
+                senderId,
+                success: false,
+              });
+              return;
+            }
+
+            console.log(
+              `User ${userId} is resetting unread count for sender ${senderId}`
+            );
+
             const user = await User.findById(userId);
-
-            if (user) {
-              // Extract unread counts from the database or use an empty object
-              const serverPrivateCounts = user.unreadMessagesCount || {};
-              const serverGroupCounts = user.unreadGroupMessagesCount || {};
-
-              // Objects where the client values overwrite the server values
-              const mergedPrivateCounts = {
-                ...serverPrivateCounts,
-                ...data.unreadMessagesCount,
-              };
-
-              const mergedGroupCounts = {
-                ...serverGroupCounts,
-                ...data.unreadGroupMessagesCount,
-              };
-
-              // Iterate for every userID and compare the server and client values
-              // The higher value is saved to the database
-              Object.keys(data.unreadMessagesCount).forEach((key) => {
-                mergedPrivateCounts[key] = Math.max(
-                  serverPrivateCounts[key] || 0,
-                  data.unreadMessagesCount[key]
-                );
+            if (!user || !user.unreadMessagesCount) {
+              socket.emit("resetSingleUnreadCountAck", {
+                senderId,
+                success: false,
               });
+              return;
+            }
 
-              Object.keys(data.unreadGroupMessagesCount).forEach((key) => {
-                mergedGroupCounts[key] = Math.max(
-                  serverGroupCounts[key] || 0,
-                  data.unreadGroupMessagesCount[key]
-                );
-              });
+            // Create a copy of user's unread counts
+            const updatedUnreadCount = { ...user.unreadMessagesCount };
 
-              // Update the database with merged counts
+            // Only remove this specific sender's count
+            if (updatedUnreadCount[senderId] !== undefined) {
+              delete updatedUnreadCount[senderId];
+
+              // Update database with modified unread counts
               await User.findByIdAndUpdate(userId, {
-                unreadMessagesCount: mergedPrivateCounts,
-                unreadGroupMessagesCount: mergedGroupCounts,
+                unreadMessagesCount: updatedUnreadCount,
               });
 
-              console.log("Merged unread counts saved to server:", {
-                private: mergedPrivateCounts,
-                groups: mergedGroupCounts,
+              // Send acknowledgment to just this client
+              socket.emit("resetSingleUnreadCountAck", {
+                senderId,
+                success: true,
               });
 
-              // Send updated counts back to client
-              socket.emit("unreadMessagesState", mergedPrivateCounts);
-              socket.emit("unreadGroupMessagesState", mergedGroupCounts);
+              console.log(
+                `Reset unread count for ${senderId} in user ${userId}'s document`
+              );
+            } else {
+              // Nothing to remove
+              socket.emit("resetSingleUnreadCountAck", {
+                senderId,
+                success: true,
+                message: "No unread count existed",
+              });
             }
           } catch (error) {
-            console.error("Error syncing unread counts:", error);
+            console.error("Error in resetSingleUnreadCount:", error);
+            socket.emit("resetSingleUnreadCountAck", {
+              senderId: data.senderId,
+              success: false,
+              error: "Server error",
+            });
           }
         });
 
-        /* This handler is made for a fresh device with no local storage to sync
-         * The client sends a request to fetch the unread counts from the server
-         * The server responds with the current unread counts for the user
-         * This is useful for new devices.
-         */
+        // Single unread count reset for group messages
+        socket.on("resetSingleGroupUnreadCount", async (data) => {
+          try {
+            const { groupId } = data;
+            if (!groupId) {
+              console.warn("Invalid groupId in resetSingleGroupUnreadCount");
+              socket.emit("resetSingleGroupUnreadCountAck", {
+                groupId,
+                success: false,
+              });
+              return;
+            }
+
+            console.log(
+              `User ${userId} is resetting unread count for group ${groupId}`
+            );
+
+            const user = await User.findById(userId);
+            if (!user || !user.unreadGroupMessagesCount) {
+              socket.emit("resetSingleGroupUnreadCountAck", {
+                groupId,
+                success: false,
+              });
+              return;
+            }
+
+            // Create a copy of user's unread group counts
+            const updatedUnreadCount = { ...user.unreadGroupMessagesCount };
+
+            // Only remove this specific group's count
+            if (updatedUnreadCount[groupId] !== undefined) {
+              delete updatedUnreadCount[groupId];
+
+              // Update database with modified unread counts
+              await User.findByIdAndUpdate(userId, {
+                unreadGroupMessagesCount: updatedUnreadCount,
+              });
+
+              // Send acknowledgment to just this client
+              socket.emit("resetSingleGroupUnreadCountAck", {
+                groupId,
+                success: true,
+              });
+
+              console.log(
+                `Reset unread count for group ${groupId} in user ${userId}'s document`
+              );
+            } else {
+              // Nothing to remove
+              socket.emit("resetSingleGroupUnreadCountAck", {
+                groupId,
+                success: true,
+                message: "No unread count existed",
+              });
+            }
+          } catch (error) {
+            console.error("Error in resetSingleGroupUnreadCount:", error);
+            socket.emit("resetSingleGroupUnreadCountAck", {
+              groupId: data.groupId,
+              success: false,
+              error: "Server error",
+            });
+          }
+        });
+
+        // Fetch unread counts handler
         socket.on("fetchUnreadCounts", async (requestedUserId) => {
           try {
+            console.log(`Fetching unread counts for user: ${requestedUserId}`);
             const user = await User.findById(requestedUserId);
 
-            const unreadMessagesCount = new Map(
-              Object.entries(user?.unreadMessagesCount || {})
-            );
-
-            const unreadGroupMessagesCount = new Map(
-              Object.entries(user?.unreadGroupMessagesCount || {})
-            );
-
-            console.log("Server-side unread messages for user:", {
-              userId: requestedUserId,
-              unreadMessagesCount: Object.fromEntries(unreadMessagesCount), // For logging clarity
-              unreadGroupMessagesCount: Object.fromEntries(
-                unreadGroupMessagesCount
-              ),
-            });
-
             if (user) {
+              // Get current unread counts from user document
+              const unreadMessagesCount = user.unreadMessagesCount || {};
+              const unreadGroupMessagesCount =
+                user.unreadGroupMessagesCount || {};
+
+              console.log("Sending full unread states to client:", {
+                userInfo: `${requestedUserId}`,
+                directMessages: Object.keys(unreadMessagesCount).length,
+                groupMessages: Object.keys(unreadGroupMessagesCount).length,
+              });
+
+              // Use consistent event names for full state updates
+              socket.emit("fullUnreadMessagesState", unreadMessagesCount);
               socket.emit(
-                "unreadMessagesState",
-                Object.fromEntries(unreadMessagesCount) // Send as plain object
-              );
-              socket.emit(
-                "unreadGroupMessagesState",
-                Object.fromEntries(unreadGroupMessagesCount)
+                "fullUnreadGroupMessagesState",
+                unreadGroupMessagesCount
               );
             }
           } catch (error) {
@@ -360,106 +443,103 @@ const setupSocket = (server) => {
           }
         });
 
+        // Enhanced sync unread counts handler
+        socket.on("syncUnreadCounts", async (data) => {
+          try {
+            console.log(`User ${userId} requesting to sync unread counts`);
+
+            const user = await User.findById(userId);
+            if (!user) return;
+
+            // Get current server counts
+            const serverPrivateCounts = user.unreadMessagesCount || {};
+            const serverGroupCounts = user.unreadGroupMessagesCount || {};
+
+            // Get client counts from data
+            const clientPrivateCounts = data.unreadMessagesCount || {};
+            const clientGroupCounts = data.unreadGroupMessagesCount || {};
+
+            // Create merged counts by taking MAX of each count
+            const mergedPrivateCounts = {};
+            const mergedGroupCounts = {};
+
+            // Process all keys from both server and client
+            const allPrivateKeys = new Set([
+              ...Object.keys(serverPrivateCounts),
+              ...Object.keys(clientPrivateCounts),
+            ]);
+
+            const allGroupKeys = new Set([
+              ...Object.keys(serverGroupCounts),
+              ...Object.keys(clientGroupCounts),
+            ]);
+
+            // Take the maximum count for each key
+            allPrivateKeys.forEach((key) => {
+              const serverValue = parseInt(serverPrivateCounts[key] || 0);
+              const clientValue = parseInt(clientPrivateCounts[key] || 0);
+              mergedPrivateCounts[key] = Math.max(serverValue, clientValue);
+            });
+
+            allGroupKeys.forEach((key) => {
+              const serverValue = parseInt(serverGroupCounts[key] || 0);
+              const clientValue = parseInt(clientGroupCounts[key] || 0);
+              mergedGroupCounts[key] = Math.max(serverValue, clientValue);
+            });
+
+            // Save the merged counts to the database
+            await User.findByIdAndUpdate(userId, {
+              unreadMessagesCount: mergedPrivateCounts,
+              unreadGroupMessagesCount: mergedGroupCounts,
+            });
+
+            console.log("Synced and merged unread counts:", {
+              userId,
+              direct: Object.keys(mergedPrivateCounts).length,
+              groups: Object.keys(mergedGroupCounts).length,
+            });
+
+            // Send the merged counts back to the client with consistent event names
+            socket.emit("fullUnreadMessagesState", mergedPrivateCounts);
+            socket.emit("fullUnreadGroupMessagesState", mergedGroupCounts);
+          } catch (error) {
+            console.error("Error syncing unread counts:", error);
+          }
+        });
+
+        // Message handlers
+        socket.on("sendMessage", sendMessage);
+        socket.on("sendGroupMessage", sendGroupMessage);
+
+        // Handle newGroup event
         socket.on("newGroup", async (group) => {
-          // Retrieving from the database the group with its ID
+          // Get group with populated members and admin
           const populatedGroup = await Group.findById(group._id)
             .populate("members", "id email userName image avatar")
             .populate("admin", "id email userName image avatar");
 
-          // Iterate through every member of the group
+          // Notify all members about new group
           populatedGroup.members.forEach((member) => {
-            // Search for the socked ID of each member
             const memberSocketId = userSocketMap.get(member._id.toString());
-            // If he's online, emit the groupCreated event to him
             if (memberSocketId) {
               io.to(memberSocketId).emit("groupCreated", populatedGroup);
             }
           });
         });
 
-        // Handlers for the sendMessage and sendGroupMessage events
-        socket.on("sendMessage", sendMessage);
-        socket.on("sendGroupMessage", sendGroupMessage);
-
-        // Handler for eliminating the red number of unread messages in private chats
-        socket.on("resetUnreadCount", async (data) => {
-          // Extract the senderId from the data object
-          const { senderId } = data;
-          try {
-            const user = await User.findById(userId);
-
-            if (user && user.unreadMessagesCount) {
-              // Create a copy of unread messages count
-              const updatedUnreadCount = { ...user.unreadMessagesCount };
-
-              // Remove the specific sender's unread count
-              delete updatedUnreadCount[senderId];
-
-              // Update user document
-              await User.findByIdAndUpdate(userId, {
-                unreadMessagesCount: updatedUnreadCount,
-              });
-
-              // Emit the updated state back to the client
-              socket.emit("unreadMessagesState", updatedUnreadCount);
-
-              console.log("Reset unread count:", {
-                userId,
-                senderId,
-                updatedUnreadCount,
-              });
-            }
-          } catch (error) {
-            console.error("Error resetting unread count:", error);
-          }
-        });
-
-        // Handler for eliminating the red number of unread messages in group chats
-        socket.on("resetGroupUnreadCount", async (data) => {
-          const { groupId } = data;
-          try {
-            const user = await User.findById(userId);
-            if (user && user.unreadGroupMessagesCount) {
-              const updatedUnreadGroupCount = {
-                ...user.unreadGroupMessagesCount,
-              };
-              console.log(
-                "Unread group messages before reset:",
-                updatedUnreadGroupCount
-              );
-
-              delete updatedUnreadGroupCount[groupId]; // Ensure groupId is correctly matched and removed
-
-              console.log("Resetting unread group count for group:", groupId);
-
-              await User.findByIdAndUpdate(userId, {
-                unreadGroupMessagesCount: updatedUnreadGroupCount,
-              });
-
-              console.log(
-                "Updated unread group count:",
-                updatedUnreadGroupCount
-              );
-
-              socket.emit("unreadGroupMessagesState", updatedUnreadGroupCount);
-            }
-          } catch (error) {
-            console.error("Error resetting group unread count:", error);
-          }
-        });
-
+        // Handle group member removed
         socket.on("memberRemoved", async (data) => {
           const { groupId, memberId, adminId } = data;
 
           try {
-            // Retrieving the group's information
+            // Get group details
             const group = await Group.findById(groupId)
               .populate("members", "userName avatar image isOnline")
               .populate("admin", "userName avatar image isOnline");
 
             if (!group) return;
 
-            // Add the group ID to the user's list of removed groups
+            // Update removed user's document
             await User.findByIdAndUpdate(memberId, {
               $push: { removedGroups: { groupId } },
             });
@@ -485,29 +565,30 @@ const setupSocket = (server) => {
           }
         });
 
+        // Handle user leaving group
         socket.on("leftGroup", async (data) => {
           const { groupId, userId, wasAdmin, newAdminId } = data;
 
           try {
-            // Delete (pull) the group from the user's list of removed groups
+            // Remove any previous entry for this group
             await User.updateOne(
               { _id: userId },
               { $pull: { removedGroups: { groupId } } }
             );
 
-            // Update the user's document to reflect that they left the group
+            // Add new entry with left flag set to true
             await User.findByIdAndUpdate(userId, {
               $push: { removedGroups: { groupId, left: true } },
             });
 
-            // Retrieve the updated group details
+            // Get group details
             const group = await Group.findById(groupId)
               .populate("members", "userName avatar image isOnline")
               .populate("admin", "userName avatar image isOnline");
 
             if (!group) return;
 
-            // Notify the user who left the group
+            // Notify the user who left
             const userSocketId = userSocketMap.get(userId);
             if (userSocketId) {
               const inactiveGroup = {
@@ -526,18 +607,14 @@ const setupSocket = (server) => {
               });
             }
 
-            // Notify the other members of the group
+            // Notify other members
             const memberSocketIds = group.members
-              // Get all the member IDs
               .map((member) => member._id.toString())
-              // Remove the user who left
               .filter((id) => id !== userId)
-              // Get the socket ID of each member
               .map((id) => userSocketMap.get(id))
-              // Filter the disconnected sockets
               .filter((id) => id);
 
-            // Include the admin
+            // Include admin if not already in the list
             if (
               group.admin &&
               group.admin._id.toString() !== userId &&
@@ -551,6 +628,7 @@ const setupSocket = (server) => {
               if (adminSocketId) memberSocketIds.push(adminSocketId);
             }
 
+            // Send notification to all other members
             for (const socketId of memberSocketIds) {
               io.to(socketId).emit("userLeftGroup", {
                 groupId,
@@ -565,17 +643,18 @@ const setupSocket = (server) => {
           }
         });
 
+        // Handle group deletion
         socket.on("groupDeleted", async (data) => {
           const { groupId, isRemoved } = data;
 
           try {
-            // Get the group with updated details
+            // Get group with members and admin
             const group = await Group.findById(groupId).populate(
               "members admin"
             );
 
             if (group) {
-              // Notify all members
+              // Notify all members and admin
               [...group.members, group.admin].forEach((member) => {
                 const memberSocket = userSocketMap.get(member._id.toString());
                 if (memberSocket) {
@@ -593,10 +672,11 @@ const setupSocket = (server) => {
           }
         });
 
+        // Handle admin change
         socket.on("groupAdminChanged", async (data) => {
           const { groupId, newAdminId } = data;
 
-          // Notify all members of the group about the admin changed
+          // Notify all members
           const group = await Group.findById(groupId).populate("members admin");
           if (group) {
             [...group.members, group.admin].forEach((member) => {
@@ -612,11 +692,12 @@ const setupSocket = (server) => {
           }
         });
 
+        // Handle adding members to group
         socket.on("membersAdded", async (data) => {
           const { groupId, memberIds } = data;
 
           try {
-            // Ensure that the user is not considered as removed from the group
+            // Clear removedGroups entries for new members
             for (const memberId of memberIds) {
               await User.updateOne(
                 { _id: memberId },
@@ -624,7 +705,7 @@ const setupSocket = (server) => {
               );
             }
 
-            // Retrieve the updated group details
+            // Get updated group details
             const group = await Group.findById(groupId)
               .populate("members", "userName avatar image isOnline")
               .populate("admin", "userName avatar image isOnline");
@@ -633,7 +714,7 @@ const setupSocket = (server) => {
 
             console.log(`Sending addedToGroup event to members: ${memberIds}`);
 
-            // Notify the members
+            // Notify all new members
             for (const memberId of memberIds) {
               const memberSocketId = userSocketMap.get(memberId);
               if (memberSocketId) {
@@ -653,59 +734,7 @@ const setupSocket = (server) => {
           }
         });
 
-        socket.on("unreadMessagesState", (serverUnreadMessages) => {
-          const rehydratedUnreadMessages = get().rehydratedUnreadMessages || {};
-
-          // Merge rehydrated local state with server state
-          const mergedUnreadMessages = get().mergeUnreadCounts(
-            rehydratedUnreadMessages,
-            serverUnreadMessages
-          );
-
-          // Update the store and persist to local storage
-          set({ unreadMessagesCount: mergedUnreadMessages });
-          localStorage.setItem(
-            "chat-storage",
-            JSON.stringify({ unreadMessagesCount: mergedUnreadMessages })
-          );
-
-          console.log(
-            "Final merged unread messages count:",
-            mergedUnreadMessages
-          );
-
-          // Clear temporary rehydration data
-          set({ rehydratedUnreadMessages: null });
-        });
-
-        socket.on("unreadGroupMessagesState", (serverUnreadGroupMessages) => {
-          const rehydratedUnreadGroupMessages =
-            get().rehydratedUnreadGroupMessages || {};
-
-          // Merge rehydrated local state with server state
-          const mergedUnreadGroupMessages = get().mergeUnreadCounts(
-            rehydratedUnreadGroupMessages,
-            serverUnreadGroupMessages
-          );
-
-          // Update the store and persist to local storage
-          set({ unreadGroupMessagesCount: mergedUnreadGroupMessages });
-          localStorage.setItem(
-            "chat-storage",
-            JSON.stringify({
-              unreadGroupMessagesCount: mergedUnreadGroupMessages,
-            })
-          );
-
-          console.log(
-            "Final merged unread group messages count:",
-            mergedUnreadGroupMessages
-          );
-
-          // Clear temporary rehydration data
-          set({ rehydratedUnreadGroupMessages: null });
-        });
-
+        // Handle user block events
         socket.on("userBlocked", async (data) => {
           const { blockedUserId } = data;
           try {
@@ -716,8 +745,23 @@ const setupSocket = (server) => {
                 blockerId: userId,
               });
             }
+
+            // Also confirm back to the blocker that the action was successful
+            // This ensures the UI updates immediately for both parties
+            io.to(socket.id).emit("blockActionComplete", {
+              targetUserId: blockedUserId,
+              action: "block",
+              success: true,
+            });
           } catch (error) {
             console.error("Error handling user blocked event:", error);
+            // Send error to client if needed
+            io.to(socket.id).emit("blockActionComplete", {
+              targetUserId: blockedUserId,
+              action: "block",
+              success: false,
+              error: error.message,
+            });
           }
         });
 
@@ -731,40 +775,36 @@ const setupSocket = (server) => {
                 unblockerId: userId,
               });
             }
+
+            // Also confirm back to the unblocking user that the action was successful
+            // This ensures the UI updates immediately for both parties
+            io.to(socket.id).emit("blockActionComplete", {
+              targetUserId: blockedUserId,
+              action: "unblock",
+              success: true,
+            });
           } catch (error) {
             console.error("Error handling user unblocked event:", error);
+            // Send error to client if needed
+            io.to(socket.id).emit("blockActionComplete", {
+              targetUserId: blockedUserId,
+              action: "unblock",
+              success: false,
+              error: error.message,
+            });
           }
         });
 
+        // Handle disconnection
         socket.on("disconnect", async () => {
           try {
             const user = await User.findById(userId);
 
             if (user) {
-              const unreadMessagesCount = new Map(
-                Object.entries(user.unreadMessagesCount || {})
-              );
-
-              console.log("Before saving on disconnect:", {
-                unreadMessagesCount: Object.fromEntries(unreadMessagesCount),
-              });
-
-              await User.updateOne(
-                { _id: userId },
-                { unreadMessagesCount: Object.fromEntries(unreadMessagesCount) }
-              );
-
-              console.log(
-                "UnreadMessagesCount saved to database on disconnect:",
-                {
-                  userId,
-                  unreadMessagesCount: Object.fromEntries(unreadMessagesCount),
-                }
-              );
+              // Update online status
+              await User.findByIdAndUpdate(userId, { isOnline: false });
+              disconnect(socket);
             }
-
-            await User.findByIdAndUpdate(userId, { isOnline: false });
-            disconnect(socket);
           } catch (error) {
             console.error("Error during disconnect:", error);
           }
@@ -775,4 +815,5 @@ const setupSocket = (server) => {
     }
   });
 };
+
 export default setupSocket;

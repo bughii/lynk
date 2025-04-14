@@ -1,15 +1,10 @@
 import React from "react";
 import { useState } from "react";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "../../components/ui/Tabs";
-import { Input } from "../../components/ui/Input";
-import { Button } from "../../components/ui/Button";
+import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import thumbs from "../../assets/thumbsup.png";
+import thumbs from "@/assets/thumbsup.png";
 
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";

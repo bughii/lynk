@@ -2,8 +2,7 @@ import { useSocket } from "@/context/SocketContext";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import EmojiPicker from "emoji-picker-react";
-import { useEffect, useRef } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GrAttachment } from "react-icons/gr";
 import { IoSend } from "react-icons/io5";
 import { RiEmojiStickerLine } from "react-icons/ri";
@@ -12,25 +11,48 @@ import { apiClient } from "@/lib/api-client.js";
 import { SEND_FILE_ROUTE } from "@/utils/constants.js";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useBlockStatus } from "@/hooks/useBlockStatus";
 
 function MessageBar() {
   const [message, setMessage] = useState("");
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const { selectedChatType, selectedChatData } = useChatStore();
+  const { selectedChatType, selectedChatData, blockedUsers, blockedByUsers } =
+    useChatStore();
   const { user } = useAuthStore();
   const emojiRef = useRef();
   const socket = useSocket();
   const fileInputRef = useRef();
   const { t } = useTranslation();
 
-  // Add block status check
-  const { loading, userHasBlocked, userIsBlocked } = useBlockStatus(
-    selectedChatType === "friend" ? selectedChatData?._id : null
-  );
+  // Track block status with state to ensure UI updates
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [userHasBlocked, setUserHasBlocked] = useState(false);
+  const [userIsBlocked, setUserIsBlocked] = useState(false);
 
-  // Determine if the conversation is blocked
-  const isBlocked = userHasBlocked || userIsBlocked;
+  // Update block status whenever relevant state changes
+  useEffect(() => {
+    if (selectedChatType === "friend" && selectedChatData) {
+      const userId = selectedChatData._id;
+      const hasBlocked = blockedUsers.includes(userId);
+      const isBlocked = blockedByUsers.includes(userId);
+
+      setUserHasBlocked(hasBlocked);
+      setUserIsBlocked(isBlocked);
+      setIsBlocked(hasBlocked || isBlocked);
+    } else {
+      setIsBlocked(false);
+      setUserHasBlocked(false);
+      setUserIsBlocked(false);
+    }
+  }, [
+    selectedChatData,
+    selectedChatType,
+    blockedUsers,
+    blockedByUsers,
+    // Also react to any timestamp changes in the selectedChatData
+    selectedChatData?._blockTimestamp,
+    selectedChatData?._blockActionCompleted,
+    selectedChatData?._isBlockedByUser,
+  ]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -44,9 +66,19 @@ function MessageBar() {
     };
   }, [emojiRef]);
 
+  useEffect(() => {
+    setMessage("");
+  }, [selectedChatData, selectedChatType]);
+
   const handleSendMessage = async () => {
     // Check if message is empty
     if (!message.trim()) {
+      return;
+    }
+
+    // Check if this is a direct message that is blocked
+    if (selectedChatType === "friend" && isBlocked) {
+      toast.error(t("block.messagesWontBeDelivered"));
       return;
     }
 
@@ -100,6 +132,12 @@ function MessageBar() {
   };
 
   const handleFileChange = async (event) => {
+    // Check if this is a direct message that is blocked
+    if (selectedChatType === "friend" && isBlocked) {
+      toast.error(t("block.messagesWontBeDelivered"));
+      return;
+    }
+
     try {
       const file = event.target.files[0];
       if (file) {
@@ -138,17 +176,26 @@ function MessageBar() {
     setMessage((msg) => msg + emoji.emoji);
   };
 
+  // Only show a block banner if we're in a direct message that's blocked
+  const shouldShowBlockBanner = selectedChatType === "friend" && isBlocked;
+
+  // Get the appropriate block message
+  const getBlockMessage = () => {
+    if (userHasBlocked) {
+      return t("block.messagesWontBeDeliveredBlocked");
+    } else if (userIsBlocked) {
+      return t("block.messagesWontBeDeliveredYouAreBlocked");
+    }
+    return t("block.messagesWontBeDelivered");
+  };
+
   return (
     <>
-      {/* Show block warning banner if applicable */}
-      {isBlocked && selectedChatType === "friend" && (
-        <div className="bg-amber-900/20 text-amber-400 py-2 px-4 flex items-center justify-center">
-          <FaBan className="mr-2" />
-          <span>
-            {userHasBlocked
-              ? t("block.messagesWontBeDeliveredBlocked")
-              : t("block.messagesWontBeDeliveredYouAreBlocked")}
-          </span>
+      {/* Only show one block banner at the top of the message bar */}
+      {shouldShowBlockBanner && (
+        <div className="bg-amber-900/20 text-amber-400 py-2 px-6 rounded-xl inline-flex items-center justify-center mx-auto mb-4 w-fit">
+          <FaBan className="mr-2 text-lg" />
+          <span className="text-base">{getBlockMessage()}</span>
         </div>
       )}
 
@@ -166,7 +213,9 @@ function MessageBar() {
             onChange={(e) => setMessage(e.target.value)}
           />
           <button
-            className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-transform transform hover:scale-110 active:scale-95"
+            className={`text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-transform transform hover:scale-110 active:scale-95 ${
+              isBlocked ? "opacity-50 cursor-not-allowed" : ""
+            }`}
             onClick={handleFileUpload}
           >
             <GrAttachment className="text-2xl" />
@@ -179,7 +228,9 @@ function MessageBar() {
           />
           <div className="relative">
             <button
-              className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-transform transform hover:scale-110 active:scale-95 mt-1"
+              className={`text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-transform transform hover:scale-110 active:scale-95 mt-1 ${
+                isBlocked ? "opacity-50 cursor-not-allowed" : ""
+              }`}
               onClick={() => setEmojiPickerOpen(true)}
             >
               <RiEmojiStickerLine className="text-2xl" />
@@ -187,7 +238,7 @@ function MessageBar() {
             <div className="absolute bottom-16 right-0" ref={emojiRef}>
               <EmojiPicker
                 theme="dark"
-                open={emojiPickerOpen}
+                open={emojiPickerOpen && !isBlocked}
                 onEmojiClick={handleAddEmoji}
                 autoFocusSearch={false}
               />

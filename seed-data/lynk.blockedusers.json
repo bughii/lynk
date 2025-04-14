@@ -1,0 +1,18 @@
+[{
+  "_id": {
+    "$oid": "67fc4cf84952fba4a1d0769a"
+  },
+  "blocker": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "blocked": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "createdAt": {
+    "$date": "2025-04-13T23:47:04.715Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:47:04.715Z"
+  },
+  "__v": 0
+}]

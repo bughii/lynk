@@ -1,0 +1,140 @@
+[{
+  "_id": {
+    "$oid": "67fc47194952fba4a1d0732e"
+  },
+  "email": "bogdansoflau0011@gmail.com",
+  "password": "$2a$10$Fo6yO00z2iqeqy9MborfreogUyTLnev2NbeIuwrAnsELHV35u.lrC",
+  "userName": "user1",
+  "isVerified": true,
+  "profileSetup": true,
+  "isOnline": true,
+  "lastLogin": {
+    "$date": "2025-04-13T23:22:01.897Z"
+  },
+  "removedGroups": [],
+  "createdAt": {
+    "$date": "2025-04-13T23:22:01.900Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:44:53.914Z"
+  },
+  "__v": 0,
+  "unreadGroupMessagesCount": {
+    "6746ec65fe3f180f179401a5": 4,
+    "674751ae11573a688610affb": 3,
+    "67fc4b0b4952fba4a1d0753a": 1
+  },
+  "unreadMessagesCount": {
+    "6744931b4256d1f171ae0202": 4,
+    "6746ebe6fe3f180f17940121": 2,
+    "677813682cfad122979b2d75": 5,
+    "67fc47504952fba4a1d07342": 3
+  },
+  "avatar": 1
+},
+{
+  "_id": {
+    "$oid": "67fc47504952fba4a1d07342"
+  },
+  "email": "user2@gmail.com",
+  "password": "$2a$10$qGlcl0AnU4uKnI6TisFBnedfNM7mrkFNLZtAv2fdraklgmngYqno6",
+  "userName": "user2",
+  "isVerified": true,
+  "profileSetup": true,
+  "isOnline": true,
+  "verificationToken": "375302",
+  "verificationTokenExpiresAt": {
+    "$date": "2025-04-14T23:22:56.448Z"
+  },
+  "lastLogin": {
+    "$date": "2025-04-13T23:33:20.813Z"
+  },
+  "removedGroups": [],
+  "createdAt": {
+    "$date": "2025-04-13T23:22:56.449Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:42:35.439Z"
+  },
+  "__v": 0,
+  "unreadGroupMessagesCount": {
+    "67fc4b0b4952fba4a1d0753a": 1
+  },
+  "unreadMessagesCount": {
+    "67fc47194952fba4a1d0732e": 1,
+    "67fc48334952fba4a1d073a1": 1
+  },
+  "avatar": 0
+},
+{
+  "_id": {
+    "$oid": "67fc48334952fba4a1d073a1"
+  },
+  "email": "user3@gmail.com",
+  "password": "$2a$10$06Vt5rcUwJ9n1oLu/RCw/euKqJQSYEodkxCkl2gQbVGby8U/aeIHK",
+  "userName": "user3",
+  "isVerified": true,
+  "profileSetup": true,
+  "isOnline": true,
+  "verificationToken": "234056",
+  "verificationTokenExpiresAt": {
+    "$date": "2025-04-14T23:26:43.573Z"
+  },
+  "lastLogin": {
+    "$date": "2025-04-13T23:32:14.320Z"
+  },
+  "removedGroups": [],
+  "createdAt": {
+    "$date": "2025-04-13T23:26:43.574Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:42:35.420Z"
+  },
+  "__v": 0,
+  "unreadGroupMessagesCount": {
+    "6746ec65fe3f180f179401a5": 4,
+    "674751ae11573a688610affb": 3,
+    "67f90e2c2a5ba3fc27298d43": 1,
+    "67f7c9a2e2879d739ed9e106": 1,
+    "67fc4b0b4952fba4a1d0753a": 2
+  },
+  "unreadMessagesCount": {
+    "67fc47194952fba4a1d0732e": 2,
+    "6744931b4256d1f171ae0202": 4,
+    "6747520e11573a688610b0dd": 3
+  },
+  "image": "uploads/profiles/c164a920-2713-44d8-b6cf-1ebc516a3110KWMAsHLh_400x400.jpg",
+  "avatar": 0
+},
+{
+  "_id": {
+    "$oid": "67fc48c54952fba4a1d073f5"
+  },
+  "email": "user4@gmail.com",
+  "password": "$2a$10$pJAZ37SVPidSwI27mQPPoO4MzBFrvQ0KUBUi0ShOvSELHOpsrK/f.",
+  "userName": "user4",
+  "isVerified": true,
+  "profileSetup": true,
+  "isOnline": true,
+  "verificationToken": "817036",
+  "verificationTokenExpiresAt": {
+    "$date": "2025-04-14T23:29:09.899Z"
+  },
+  "lastLogin": {
+    "$date": "2025-04-13T23:29:27.543Z"
+  },
+  "removedGroups": [],
+  "createdAt": {
+    "$date": "2025-04-13T23:29:09.899Z"
+  },
+  "updatedAt": {
+    "$date": "2025-04-13T23:44:14.192Z"
+  },
+  "__v": 0,
+  "unreadGroupMessagesCount": {},
+  "unreadMessagesCount": {
+    "67fc47504952fba4a1d07342": 2
+  },
+  "image": "uploads/profiles/622c8961-c954-40b6-bb66-ae29d3c3adcdimages (8).jpg",
+  "avatar": 0
+}]

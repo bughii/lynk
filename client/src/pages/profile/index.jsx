@@ -105,6 +105,7 @@ const Profile = () => {
 
         <div className="flex flex-col items-center gap-6">
           <div
+            data-testid="profile-avatar-container"
             className="relative h-32 w-32 md:w-48 md:h-48 flex items-center justify-center"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
@@ -127,6 +128,7 @@ const Profile = () => {
 
             {hovered && (
               <div
+                data-testid="avatar-action-button"
                 className="absolute inset-0 flex items-center justify-center bg-black/50 ring-fuchsia-50 rounded-full"
                 onClick={image ? handleDeleteImage : handleFileInputClick}
               >
@@ -144,6 +146,7 @@ const Profile = () => {
               onChange={handleImageChange}
               name="profile-image"
               accept=".png, .jpg, .jpeg, .svg, .webp"
+              data-testid="file-input"
             />
           </div>
 

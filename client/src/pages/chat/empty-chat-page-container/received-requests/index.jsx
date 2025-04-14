@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useFriendStore } from "@/store/friendStore";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";

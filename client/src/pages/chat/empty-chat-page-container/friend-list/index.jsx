@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { useFriendStore } from "@/store/friendStore";
-import { FaTimes } from "react-icons/fa";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
 import { HOST } from "@/utils/constants";

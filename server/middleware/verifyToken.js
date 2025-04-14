@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 
 export const verifyToken = (req, res, next) => {
-  // Recupero il token dal cookie
+  // Retrieve the token from the cookies
   const token = req.cookies.token;
 
-  // Se non c'è il token, restituisco un errore
+  // If there's no token, we return a 401 Unauthorized response
   if (!token) return res.status(401).send("Non sei autenticato!");
 
   try {

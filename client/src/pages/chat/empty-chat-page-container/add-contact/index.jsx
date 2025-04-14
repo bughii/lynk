@@ -2,7 +2,6 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
 import { useState } from "react";
 import { HOST } from "@/utils/constants";
-import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFriendStore } from "@/store/friendStore";

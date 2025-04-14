@@ -14,7 +14,14 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
-import { FaUserPlus, FaSearch, FaCheck, FaUserFriends } from "react-icons/fa";
+import {
+  FaUserPlus,
+  FaSearch,
+  FaCheck,
+  FaUserFriends,
+  FaBan,
+} from "react-icons/fa";
+import { useChatStore } from "@/store/chatStore";
 
 function AddMembersDialog({
   open,
@@ -25,12 +32,16 @@ function AddMembersDialog({
   const { t } = useTranslation();
   const { friends, fetchFriends } = useFriendStore();
 
+  // Get blocked users from chat store
+  const blockedUsers = useChatStore((state) => state.blockedUsers || []);
+  const blockedByUsers = useChatStore((state) => state.blockedByUsers || []);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [filteredFriends, setFilteredFriends] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Carica gli amici quando il dialogo viene aperto
+  // Load friends when dialog opens
   useEffect(() => {
     const loadFriends = async () => {
       setIsLoading(true);
@@ -41,29 +52,41 @@ function AddMembersDialog({
     if (open) {
       loadFriends();
     } else {
-      // Reset dello stato quando il dialogo si chiude
+      // Reset state when dialog closes
       setSelectedFriends([]);
       setSearchTerm("");
     }
   }, [open, fetchFriends]);
 
-  // Filtra gli amici in base al termine di ricerca e esclude quelli già nel gruppo
+  // Filter friends based on search term, existing members, and block status
   useEffect(() => {
     if (friends.length > 0) {
-      const availableFriends = friends.filter(
+      // First, filter out existing members
+      let availableFriends = friends.filter(
         (friend) => !existingMembers.includes(friend._id)
       );
 
+      // Combine both directions of blocking
+      const allBlockedIds = [...blockedUsers, ...blockedByUsers];
+
+      // Then, filter out blocked users
+      if (allBlockedIds.length > 0) {
+        availableFriends = availableFriends.filter(
+          (friend) => !allBlockedIds.includes(friend._id)
+        );
+      }
+
+      // Finally, apply search term filter if present
       if (searchTerm) {
-        const filtered = availableFriends.filter((friend) =>
+        const searchFiltered = availableFriends.filter((friend) =>
           friend.userName.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        setFilteredFriends(filtered);
+        setFilteredFriends(searchFiltered);
       } else {
         setFilteredFriends(availableFriends);
       }
     }
-  }, [friends, searchTerm, existingMembers]);
+  }, [friends, searchTerm, existingMembers, blockedUsers, blockedByUsers]);
 
   const handleToggleFriend = (friend) => {
     setSelectedFriends((prev) => {
@@ -80,6 +103,15 @@ function AddMembersDialog({
   const handleConfirm = () => {
     onMembersSelected(selectedFriends);
   };
+
+  // Check if any friends were filtered out due to blocks
+  const availableFriendsCount = friends.filter(
+    (friend) => !existingMembers.includes(friend._id)
+  ).length;
+
+  const hasBlockedUsers =
+    filteredFriends.length < availableFriendsCount &&
+    (blockedUsers.length > 0 || blockedByUsers.length > 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,6 +136,14 @@ function AddMembersDialog({
               size={16}
             />
           </div>
+
+          {/* Notification when some users are filtered out due to blocking */}
+          {hasBlockedUsers && (
+            <div className="bg-amber-900/20 text-amber-400 text-xs px-3 py-2 rounded-md mb-3 flex items-center">
+              <FaBan className="mr-2 flex-shrink-0" size={12} />
+              <span>{t("block.blockedUsersExcluded")}</span>
+            </div>
+          )}
 
           {filteredFriends.length > 0 && (
             <div className="text-xs uppercase tracking-wider text-gray-400 mb-2 flex items-center">

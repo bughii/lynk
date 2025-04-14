@@ -11,7 +11,7 @@ function ChatPageContainer() {
   const { selectedChatData, selectedChatType } = useChatStore();
   const { t } = useTranslation();
 
-  // Usa questi stati per determinare quale banner mostrare
+  // Used to determine which banners to show
   const isRemovedFromGroup =
     selectedChatType === "group" &&
     selectedChatData &&
@@ -29,19 +29,18 @@ function ChatPageContainer() {
     selectedChatData &&
     selectedChatData.isDeleted === true;
 
-  // Effetto per caricare i dettagli aggiornati del gruppo dopo che è stato selezionato
+  // Load group details when the component mounts or when the selected chat changes
   useEffect(() => {
     if (
       selectedChatType === "group" &&
       selectedChatData &&
       selectedChatData._id
     ) {
-      // Carica i dettagli aggiornati del gruppo
       apiClient
         .get(`/api/groups/get-group-details/${selectedChatData._id}`)
         .then((response) => {
           if (response.data && response.data.group) {
-            // Aggiorna lo stato del gruppo con i flag più recenti
+            // Update the group details
             useChatStore.getState().updateGroup(selectedChatData._id, {
               isActive: response.data.group.isActive,
               userRemoved: response.data.group.userRemoved,

@@ -5,7 +5,6 @@ import ResetPasswordPage from "@/pages/reset-password";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
 
 // Mock dependencies
 vi.mock("react-router-dom", () => ({

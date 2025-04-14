@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RiCloseFill } from "react-icons/ri";
-import { FaInfoCircle } from "react-icons/fa";
+import { FaInfoCircle, FaBan } from "react-icons/fa";
 import { useChatStore } from "@/store/chatStore";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { HOST } from "@/utils/constants";
@@ -8,16 +8,44 @@ import { getAvatar } from "@/lib/utils";
 import GroupInfoDialog from "./group-info";
 import BlockUserDialog from "../block-user-dialog";
 import { useTranslation } from "react-i18next";
-import { FaBan } from "react-icons/fa";
 
 /**
  * Header component for chat that displays user/group info and action buttons
  */
+
 function ChatInfo() {
   const { t } = useTranslation();
-  const { closeChat, selectedChatData, selectedChatType } = useChatStore();
+  const {
+    closeChat,
+    selectedChatData,
+    selectedChatType,
+    blockedUsers,
+    blockedByUsers,
+  } = useChatStore();
+
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
+
+  // Track block status for internal use only - not for display
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [hasBlocked, setHasBlocked] = useState(false);
+
+  // Update block status whenever relevant state changes
+  useEffect(() => {
+    if (selectedChatType === "friend" && selectedChatData) {
+      const userId = selectedChatData._id;
+      setHasBlocked(blockedUsers.includes(userId));
+      setIsBlocked(blockedByUsers.includes(userId));
+    }
+  }, [
+    selectedChatData,
+    selectedChatType,
+    blockedUsers,
+    blockedByUsers,
+    // Also react to any timestamp changes in the selectedChatData
+    selectedChatData?._blockTimestamp,
+    selectedChatData?._blockActionCompleted,
+  ]);
 
   const handleOpenGroupInfo = () => {
     setShowGroupInfo(true);
@@ -69,7 +97,7 @@ function ChatInfo() {
           </button>
         )}
 
-        {/* Add Block/Unblock button for direct chats */}
+        {/* Block/Unblock button for direct chats */}
         {selectedChatType === "friend" && (
           <button
             className="text-neutral-500 focus:border-none focus:outline-none focus:text-white duration-300 transition-all"
@@ -96,7 +124,7 @@ function ChatInfo() {
         />
       )}
 
-      {/* Add Block User Dialog */}
+      {/* Block User Dialog */}
       {selectedChatType === "friend" && (
         <BlockUserDialog
           open={showBlockDialog}

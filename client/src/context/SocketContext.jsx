@@ -24,7 +24,7 @@ export const SocketProvider = ({ children }) => {
     incrementUnreadCount,
     incrementGroupUnreadCount,
     setUnreadMessagesCount,
-    setUnreadGroupMessagesState,
+    setUnreadGroupMessagesCount,
     addGroup,
     addMessage,
     updateGroupList,
@@ -34,75 +34,41 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     // If the user is authenticated, create a new socket connection
     if (user) {
+      console.log("⚡ Connecting to Socket.IO server:", HOST);
+
       const newSocket = io(HOST, {
+        path: "/socket.io",
         withCredentials: true,
-        query: { userId: user._id }, // sending the user id to the server
+        query: { userId: user._id },
+        transports: ["websocket", "polling"],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
       });
 
       // When the socket is connected, emit the event to the server to get the unread messages
       newSocket.on("connect", () => {
+        console.log("Socket connected, syncing unread counts...");
         const { unreadMessagesCount, unreadGroupMessagesCount } =
           useChatStore.getState();
 
-        // Always emit current unread counts to server
+        // Always emit current unread counts to server for merging
         newSocket.emit("syncUnreadCounts", {
           unreadMessagesCount: unreadMessagesCount || {},
           unreadGroupMessagesCount: unreadGroupMessagesCount || {},
         });
 
-        console.log("Connected to socket server");
+        // Store socket in ChatStore for broader access
         setChatStoreSocket(newSocket);
-
-        // Explicitly fetch unread counts from server
-        newSocket.emit("fetchUnreadCounts", user._id);
       });
 
-      newSocket.on("blockedByUser", (data) => {
-        const { blockerId } = data;
-        console.log("You've been blocked by:", blockerId);
-
-        // Trigger an immediate UI update for the currently open chat
-        const { selectedChatType, selectedChatData, refreshSelectedChat } =
-          useChatStore.getState();
-
-        // If the current chat is with the user who just blocked you, refresh the UI
-        if (
-          selectedChatType === "friend" &&
-          selectedChatData &&
-          selectedChatData._id === blockerId
-        ) {
-          refreshSelectedChat(); // Add this method to chatStore
-        }
-
-        toast.info(t("block.youWereBlocked"));
-      });
-
-      newSocket.on("unblockedByUser", (data) => {
-        const { unblockerId } = data;
-        console.log("You've been unblocked by:", unblockerId);
-
-        // Trigger an immediate UI update for the currently open chat
-        const { selectedChatType, selectedChatData, refreshSelectedChat } =
-          useChatStore.getState();
-
-        // If the current chat is with the user who just unblocked you, refresh the UI
-        if (
-          selectedChatType === "friend" &&
-          selectedChatData &&
-          selectedChatData._id === unblockerId
-        ) {
-          refreshSelectedChat();
-        }
-
-        toast.info(t("block.youWereUnblocked"));
-      });
-
-      newSocket.on("resetUnreadCount", (data) => {
-        console.log("Server acknowledged resetUnreadCount:", data);
-      });
-
-      newSocket.on("resetGroupUnreadCount", (data) => {
-        console.log("Server acknowledged resetGroupUnreadCount:", data);
+      // Explicitly handle group message unread count acknowledgments
+      newSocket.on("resetSingleGroupUnreadCountAck", (data) => {
+        const { groupId, success } = data;
+        console.log(
+          `Reset group unread count for ${groupId}: ${
+            success ? "Success" : "Failed"
+          }`
+        );
       });
 
       // When the server sends a new message, update the chat store
@@ -111,16 +77,16 @@ export const SocketProvider = ({ children }) => {
           useChatStore.getState();
         const { user } = useAuthStore.getState(); // Get current user to properly compare
 
-        // Make sure message has the full sender object structure
-        // This is the critical fix - ensure the sender and recipient have proper ID references
+        // Standardize the structure of the message
         const processedMessage = {
           ...message,
-          // Ensure sender has _id accessible as a property not a string
+          // If the sender is provided as a string, convert it to an object with an _id property
+          // If it is already an object, leave it as is
           sender:
             typeof message.sender === "string"
               ? { _id: message.sender }
               : message.sender,
-          // Ensure recipient has _id accessible as a property not a string
+          // Ensure the recipient is also an object with an _id property
           recipient:
             typeof message.recipient === "string"
               ? { _id: message.recipient }
@@ -134,20 +100,26 @@ export const SocketProvider = ({ children }) => {
           (selectedChatData._id === processedMessage.sender._id ||
             selectedChatData._id === processedMessage.recipient._id)
         ) {
-          // Important: Set isCurrentUserSender flag to help with alignment
+          // Flag to indicate if the message is from the current user
+          // Will need it for the UI rendering
           processedMessage.isCurrentUserSender =
             processedMessage.sender._id === user._id;
 
+          // At this point, the message is guaranteed to have the sender and recipient properties
           addMessage(processedMessage);
         } else {
           // Increment unread count if the message doesn't belong to the selected chat
-          incrementUnreadCount(message.sender._id);
+          // Only increment counts for messages we receive, not those we send
+          if (processedMessage.sender._id !== user._id) {
+            incrementUnreadCount(processedMessage.sender._id);
+          }
         }
       });
 
       newSocket.on("receiveGroupMessage", (message) => {
         const { selectedChatData, selectedChatType, addMessage } =
           useChatStore.getState();
+        const { user } = useAuthStore.getState();
 
         // Check if the message belongs to the currently selected group chat
         if (
@@ -157,51 +129,56 @@ export const SocketProvider = ({ children }) => {
         ) {
           addMessage(message); // Add the message only if it belongs to the selected group chat
         } else {
-          // Increment unread group count if the message doesn't belong to the selected group chat
-          incrementGroupUnreadCount(message.groupId);
+          // Only increment unread count if we didn't send this message
+          if (message.sender._id !== user._id) {
+            console.log(
+              `Incrementing unread count for group: ${message.groupId}`
+            );
+            incrementGroupUnreadCount(message.groupId);
+          }
         }
 
         // Update the group list to move the group to the top
         updateGroupList(message);
       });
 
-      // When the server sends the unread messages state, update the chat store
-      newSocket.on("unreadGroupMessagesState", (serverUnreadGroupMessages) => {
-        const currentGroupLocalState =
-          useChatStore.getState().unreadGroupMessagesCount || {};
-
-        // More aggressive reset
-        const mergedGroupState = Object.keys({
-          ...currentGroupLocalState,
-          ...serverUnreadGroupMessages,
-        }).reduce((acc, groupId) => {
-          // Only keep counts that exist in the server state
-          if (serverUnreadGroupMessages[groupId] !== undefined) {
-            acc[groupId] = serverUnreadGroupMessages[groupId];
-          }
-          return acc;
-        }, {});
-
-        setUnreadGroupMessagesState(serverUnreadGroupMessages || {});
+      // Handle full unread count states from server
+      newSocket.on("fullUnreadMessagesState", (unreadMessages) => {
+        console.log(
+          "Received fullUnreadMessagesState:",
+          Object.keys(unreadMessages).length,
+          "conversations"
+        );
+        setUnreadMessagesCount(unreadMessages || {});
       });
 
+      newSocket.on("fullUnreadGroupMessagesState", (unreadGroupMessages) => {
+        console.log(
+          "Received fullUnreadGroupMessagesState:",
+          Object.keys(unreadGroupMessages).length,
+          "groups"
+        );
+        setUnreadGroupMessagesCount(unreadGroupMessages || {});
+      });
+
+      // For backward compatibility
       newSocket.on("unreadMessagesState", (unreadMessages) => {
-        const currentLocalState =
-          useChatStore.getState().unreadMessagesCount || {};
+        console.log(
+          "Received legacy unreadMessagesState:",
+          Object.keys(unreadMessages).length,
+          "conversations"
+        );
+        setUnreadMessagesCount(unreadMessages || {});
+      });
 
-        // More aggressive reset
-        const mergedState = Object.keys({
-          ...currentLocalState,
-          ...unreadMessages,
-        }).reduce((acc, senderId) => {
-          // Only keep counts that exist in the server state
-          if (unreadMessages[senderId] !== undefined) {
-            acc[senderId] = unreadMessages[senderId];
-          }
-          return acc;
-        }, {});
+      newSocket.on("unreadGroupMessagesState", (unreadGroupMessages) => {
+        console.log(
+          "Received legacy unreadGroupMessagesState:",
+          Object.keys(unreadGroupMessages).length,
+          "groups"
+        );
 
-        setUnreadMessagesCount(mergedState);
+        setUnreadGroupMessagesCount(unreadGroupMessages || {});
       });
 
       // When the server sends the user status update, update the friend status
@@ -210,9 +187,72 @@ export const SocketProvider = ({ children }) => {
         updateFriendStatus(userId, isOnline);
       });
 
-      newSocket.on("groupCreated", (group) => {
-        console.log("Received new group:", group);
-        addGroup(group);
+      // Other event handlers remain the same
+      newSocket.on("blockedByUser", (data) => {
+        const { blockerId } = data;
+        console.log("You've been blocked by:", blockerId);
+
+        // Get state updating methods from the store
+        const {
+          addBlockedByUser,
+          setSelectedChatData,
+          selectedChatData,
+          selectedChatType,
+        } = useChatStore.getState();
+
+        // Add user to blocked by list
+        addBlockedByUser(blockerId);
+
+        // If the current chat is with this user, update the selected chat data
+        // with block information to force UI updates
+        if (
+          selectedChatType === "friend" &&
+          selectedChatData &&
+          selectedChatData._id === blockerId
+        ) {
+          // Update the chat data with block status to trigger UI update
+          setSelectedChatData({
+            ...selectedChatData,
+            _isBlockedByUser: true,
+            _blockTimestamp: Date.now(),
+          });
+        }
+
+        toast.info(t("block.youWereBlocked"));
+      });
+
+      // Similar enhancement for the unblockedByUser event
+      newSocket.on("unblockedByUser", (data) => {
+        const { unblockerId } = data;
+        console.log("You've been unblocked by:", unblockerId);
+
+        // Get state updating methods from the store
+        const {
+          removeBlockedByUser,
+          setSelectedChatData,
+          selectedChatData,
+          selectedChatType,
+        } = useChatStore.getState();
+
+        // Remove user from blocked by list
+        removeBlockedByUser(unblockerId);
+
+        // If the current chat is with this user, update the chat data
+        // with block information to force UI updates
+        if (
+          selectedChatType === "friend" &&
+          selectedChatData &&
+          selectedChatData._id === unblockerId
+        ) {
+          // Update the chat data with block status to trigger UI update
+          setSelectedChatData({
+            ...selectedChatData,
+            _isBlockedByUser: false,
+            _blockTimestamp: Date.now(),
+          });
+        }
+
+        toast.info(t("block.youWereUnblocked"));
       });
 
       newSocket.on(
@@ -230,13 +270,13 @@ export const SocketProvider = ({ children }) => {
             groupName,
           });
 
-          // Aggiorna il gruppo nel store con isActive: false e userRemoved: true
+          // Update group in store with isActive: false and userRemoved: true
           updateGroup(groupId, {
             isActive: false,
             userRemoved: true,
           });
 
-          // Se l'utente sta visualizzando il gruppo da cui è stato rimosso
+          // If the user is viewing the group they were removed from
           if (
             selectedChatType === "group" &&
             selectedChatData?._id === groupId
@@ -247,7 +287,7 @@ export const SocketProvider = ({ children }) => {
               timestamp: new Date(),
             });
 
-            // Aggiorna selectedChatData con isActive: false e userRemoved: true
+            // Update selectedChatData with isActive: false and userRemoved: true
             useChatStore.setState({
               selectedChatData: {
                 ...selectedChatData,
@@ -256,7 +296,7 @@ export const SocketProvider = ({ children }) => {
               },
             });
           } else {
-            // Altrimenti mostra una notifica toast
+            // Otherwise show a toast notification
             toast.error(t("notifications.removedFromGroup", { groupName }));
           }
         }
@@ -270,14 +310,14 @@ export const SocketProvider = ({ children }) => {
           addSystemMessage,
         } = useChatStore.getState();
 
-        // Imposta esplicitamente entrambi i flag
+        // Explicitly set both flags
         updateGroup(groupId, {
           isActive: false,
-          userRemoved: false, // Assicurati che questo sia false
-          userLeft: true, // E questo sia true
+          userRemoved: false,
+          userLeft: true,
         });
 
-        // Se l'utente sta visualizzando il gruppo, aggiorna anche lo stato della chat selezionata
+        // If the user is viewing the group, also update the selected chat state
         if (selectedChatType === "group" && selectedChatData?._id === groupId) {
           useChatStore.setState({
             selectedChatData: {
@@ -288,7 +328,7 @@ export const SocketProvider = ({ children }) => {
             },
           });
 
-          // Aggiungi un messaggio di sistema
+          // Add a system message
           addSystemMessage({
             groupId,
             content: t("notifications.youLeftGroup"),
@@ -309,15 +349,15 @@ export const SocketProvider = ({ children }) => {
             selectedChatData,
           } = useChatStore.getState();
 
-          // Se stiamo visualizzando questo gruppo, mostra un messaggio di sistema
+          // If we're viewing this group, show a system message
           if (
             selectedChatType === "group" &&
             selectedChatData?._id === groupId
           ) {
-            // Ottieni informazioni sull'utente che è uscito
+            // Get information about the user who left
             const { user } = useAuthStore.getState();
 
-            // Messaggio differente se era admin e ha passato il ruolo
+            // Different message if they were admin and passed the role
             const message =
               wasAdmin && newAdminId === user._id
                 ? t("notifications.userLeftGroupAndYouAreNewAdmin", {
@@ -331,26 +371,26 @@ export const SocketProvider = ({ children }) => {
               timestamp: new Date(),
             });
           } else {
-            // Altrimenti, mostra una notifica toast
+            // Otherwise, show a toast notification
             toast.info(
               t("notifications.userLeftGroup", { userName: userId, groupName })
             );
           }
 
-          // Aggiorna la lista dei membri del gruppo, ma solo se abbiamo i dati del gruppo
+          // Update the group's member list, but only if we have the group data
           if (
             selectedChatType === "group" &&
             selectedChatData?._id === groupId
           ) {
-            // Rimuovi l'utente dalla lista membri
+            // Remove the user from the member list
             const updatedMembers = selectedChatData.members.filter(
               (member) => member._id !== userId
             );
 
-            // Se l'utente era admin e c'è un nuovo admin, aggiorna anche quello
+            // If the user was admin and there's a new admin, update that too
             let updatedAdmin = selectedChatData.admin;
             if (wasAdmin && newAdminId) {
-              // Trova il nuovo admin tra i membri
+              // Find the new admin among the members
               updatedAdmin =
                 updatedMembers.find((member) => member._id === newAdminId) ||
                 updatedAdmin;
@@ -367,11 +407,11 @@ export const SocketProvider = ({ children }) => {
       newSocket.on("messageRejected", ({ groupId, reason }) => {
         toast.error(t("chat.messageRejected"));
 
-        // Se la chat attuale è il gruppo per cui il messaggio è stato rifiutato, forza l'aggiornamento
+        // If the current chat is the group for which the message was rejected, force an update
         const { selectedChatType, selectedChatData, updateGroup } =
           useChatStore.getState();
         if (selectedChatType === "group" && selectedChatData?._id === groupId) {
-          // Forza l'aggiornamento del gruppo con isActive: false e userRemoved: true
+          // Force update of the group with isActive: false and userRemoved: true
           updateGroup(groupId, {
             isActive: false,
             userRemoved: true,
@@ -385,6 +425,12 @@ export const SocketProvider = ({ children }) => {
             },
           });
         }
+      });
+
+      newSocket.on("groupCreated", (createdGroup) => {
+        console.log("Received groupCreated event:", createdGroup);
+        // Add the newly created group to the chat store
+        addGroup(createdGroup);
       });
 
       newSocket.on("groupDeleted", async ({ groupId }) => {
@@ -421,11 +467,11 @@ export const SocketProvider = ({ children }) => {
         console.log("Received addedToGroup event:", group);
         const { groups, addGroup, updateGroup } = useChatStore.getState();
 
-        // Verifica se il gruppo esiste già
+        // Check if the group already exists
         const existingGroup = groups.find((g) => g._id === group._id);
 
         if (!existingGroup) {
-          // Gruppo nuovo, aggiungi alla lista
+          // New group, add to the list
           console.log("Adding new group to store:", group.name);
           addGroup({
             ...group,
@@ -433,7 +479,7 @@ export const SocketProvider = ({ children }) => {
             userRemoved: false,
           });
         } else {
-          // Gruppo esistente, aggiorna lo stato
+          // Existing group, update its state
           console.log("Updating existing group in store:", group.name);
           updateGroup(group._id, {
             isActive: true,
@@ -442,7 +488,7 @@ export const SocketProvider = ({ children }) => {
           });
         }
 
-        // Mostra una notifica
+        // Show a notification
         toast.success(
           t("notifications.addedToGroup", { groupName: group.name })
         );
@@ -452,28 +498,33 @@ export const SocketProvider = ({ children }) => {
         const { updateGroup } = useChatStore.getState();
 
         if (action === "membersAdded") {
-          // Aggiorna il gruppo nella lista
+          // Update the group in the list
           updateGroup(group._id, { members: group.members });
 
-          // Mostra una notifica discreta
+          // Show a subtle notification
           toast.info(
             t("notifications.membersAddedToGroup", { groupName: group.name })
           );
         }
       });
 
+      // PERFORM INITIAL FETCH
+      newSocket.emit("fetchUnreadCounts", user._id);
+
       setSocket(newSocket);
 
+      // Clean up on unmount
       return () => {
         if (newSocket) {
           console.log("Cleaning up socket listeners");
           newSocket.off("connect");
-          newSocket.off("resetUnreadCount");
-          newSocket.off("resetGroupUnreadCount");
-          newSocket.off("receiveMessage");
-          newSocket.off("receiveGroupMessage");
+          newSocket.off("fullUnreadMessagesState");
+          newSocket.off("fullUnreadGroupMessagesState");
           newSocket.off("unreadMessagesState");
           newSocket.off("unreadGroupMessagesState");
+          newSocket.off("resetSingleGroupUnreadCountAck");
+          newSocket.off("receiveMessage");
+          newSocket.off("receiveGroupMessage");
           newSocket.off("userStatusUpdate");
           newSocket.off("groupCreated");
           newSocket.off("addedToGroup");
@@ -491,11 +542,12 @@ export const SocketProvider = ({ children }) => {
     incrementUnreadCount,
     incrementGroupUnreadCount,
     setUnreadMessagesCount,
-    setUnreadGroupMessagesState,
+    setUnreadGroupMessagesCount,
     addGroup,
     addMessage,
     updateGroupList,
     setChatStoreSocket,
+    t,
   ]);
 
   return (

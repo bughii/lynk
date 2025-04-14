@@ -54,6 +54,9 @@
     "verifySuccess": "Email verified successfully",
     "verifyError": "The code is incorrect or has expired"
   },
+  "messageBar": {
+    "writeMessage": "Write a message"
+  },
   "mainpage": {
     "welcomeMessageEmptyScreen": "Hello",
     "online": "Online",
@@ -233,6 +236,14 @@
     "noMediaShared": "No media shared in this group yet",
     "viewMedia": "View Shared Media"
   },
+  "chatPreview": {
+    "emptyChats": "No chats available",
+    "previewPlaceholder": "Start the conversation"
+  },
+  "groupPreview": {
+    "emptyGroups": "No groups available",
+    "previewPlaceholder": "Group chat"
+  },
   "common": {
     "back": "Back",
     "startChat": "Start chat",
@@ -245,6 +256,7 @@
     "confirmActionDescription": "Are you sure you want to proceed with this action?"
   },
   "notifications": {
+    "groupCreated": "Group created",
     "addedToGroup": "You have been added to group: {groupName}",
     "membersAddedToGroup": "New members have been added to group: {groupName}",
     "removedFromGroup": "You have been removed from group: {groupName}",
@@ -293,6 +305,7 @@
     "youWereUnblocked": "You were unblocked by a user",
     "noBlockedUsers": "You haven't blocked any users",
     "blockedUsers": "Blocked Users",
+    "blockedUsersExcluded": "Blocked users are excluded from your friend list.",
     "blocking": {
       "bothDirections": "You've blocked this user. Messages won't be exchanged in either direction."
     },
