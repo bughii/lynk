@@ -1,6 +1,6 @@
 FROM node:20.11.1 AS build
 
-# Accept a build-time ARG, defaulting to "http://localhost:9001"
+# Build-time ARG
 ARG VITE_SERVER_URL=http://localhost:9001
 ENV VITE_SERVER_URL=$VITE_SERVER_URL
 
@@ -14,7 +14,7 @@ RUN npm install || npm install --registry=https://registry.npmjs.org/ || npm ci
 
 COPY . .
 
-# This is where Vite reads import.meta.env.VITE_SERVER_URL
+
 RUN npm run build
 
 FROM nginx:alpine

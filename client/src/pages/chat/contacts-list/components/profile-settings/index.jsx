@@ -22,6 +22,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { apiClient } from "@/lib/api-client";
 import { FaArrowLeft } from "react-icons/fa";
+import { useSocket } from "@/context/SocketContext";
+import { FaExclamationTriangle } from "react-icons/fa";
 
 const CHAT_COLORS = [
   "#3B82F6", // blue
@@ -42,7 +44,7 @@ const Settings = () => {
   const { updateChatColors, chatColors } = useChatStore();
   const [image, setImage] = useState(null);
   const [hovered, setHovered] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState(0);
+  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar ?? 0);
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
 
@@ -50,6 +52,7 @@ const Settings = () => {
 
   const { i18n, t } = useTranslation();
   const { language, setLanguage } = useChatStore();
+  const socket = useSocket();
 
   // Initialize state with values from chatStore
   const [sentMessageColor, setSentMessageColor] = useState(
@@ -69,6 +72,21 @@ const Settings = () => {
       setSelectedLanguage(language);
     }
   }, [language, i18n]);
+  useEffect(() => {
+    // If the avatar in the global store exists and is different from local state, update local state
+    // Default to 0 if store has null/undefined avatar
+    const storeAvatar = user?.avatar ?? 0;
+    if (storeAvatar !== selectedAvatar) {
+      setSelectedAvatar(storeAvatar);
+    }
+    // Also sync the local preview 'image' state if the user image changes in the store
+    if (user?.image) {
+      setImage(`${HOST}/${user.image}`);
+    } else {
+      setImage(null); // Clear local preview if store has no image
+    }
+    // Depend on the user object from the store
+  }, [user?.avatar, user?.image]);
 
   useEffect(() => {
     setSentMessageColor(chatColors.sentMessageColor || CHAT_COLORS[0]);
@@ -85,6 +103,34 @@ const Settings = () => {
       }
     }
   }, [user]);
+
+  const renderMainAvatar = () => {
+    const imagePath = user?.image;
+    const avatarIndex = user?.avatar;
+    let finalSrc = null;
+
+    if (imagePath) {
+      if (imagePath.startsWith("http") || imagePath.startsWith("data:")) {
+        finalSrc = imagePath;
+      } else {
+        finalSrc = `${HOST}/${
+          imagePath.startsWith("/") ? imagePath.substring(1) : imagePath
+        }`;
+      }
+    } else if (avatarIndex !== undefined && avatarIndex !== null) {
+      finalSrc = getAvatar(avatarIndex);
+    } else {
+    }
+
+    return (
+      <AvatarImage
+        key={finalSrc}
+        src={finalSrc}
+        alt={imagePath ? "profile-image" : "avatar"}
+        className="object-cover rounded-full"
+      />
+    );
+  };
 
   const handleBackToChat = () => {
     navigate("/chat");
@@ -149,13 +195,22 @@ const Settings = () => {
       formData.append("profile-image", file);
       try {
         const response = await updateProfileImage(formData);
-        if (response?.status === 200) {
+
+        if (response?.status === 200 && response.data?.image) {
           toast.success(t("settings.imageUpdatedSuccess"));
           const reader = new FileReader();
-          reader.onload = () => {
-            setImage(reader.result);
-          };
+          reader.onload = () => setImage(reader.result);
+
           reader.readAsDataURL(file);
+
+          if (socket && socket.connected) {
+            const serverRelativeImagePath = response.data.image;
+
+            socket.emit("profileImageUpdated", {
+              userId: user._id,
+              imageUrl: serverRelativeImagePath,
+            });
+          }
         }
       } catch (error) {
         toast.error(t("settings.imageUpdateError"));
@@ -176,15 +231,34 @@ const Settings = () => {
   };
 
   const saveSettingsProfile = async () => {
+    // Use the current local state which should be synced
+    const avatarToSave = selectedAvatar;
+
     try {
-      const response = await updateProfile(selectedAvatar);
-      console.log("Response after updating profile: ", response);
+      const profileData = { avatar: avatarToSave };
+
+      const response = await updateProfile(profileData);
+
       if (response && response.status === 200) {
-        toast.success("Profilo aggiornato con successo");
+        toast.success(t("settings.saveChatSettingsSuccess"));
+
+        if (socket && socket.connected) {
+          const avatarAssetPath = getAvatar(avatarToSave);
+          socket.emit("profileImageUpdated", {
+            userId: user._id,
+            imageUrl: avatarAssetPath,
+          });
+        } else {
+          console.warn("Socket not connected, cannot emit profile update.");
+        }
+      } else {
+        toast.error(
+          response?.data?.message || t("settings.saveChatSettingsError")
+        );
       }
     } catch (error) {
       console.error("Error updating profile: ", error);
-      toast.error("Errore durante l'aggiornamento del profilo");
+      toast.error(t("settings.saveChatSettingsError"));
     }
   };
 
@@ -308,19 +382,7 @@ const Settings = () => {
                   onMouseLeave={() => setHovered(false)}
                 >
                   <Avatar className="h-full w-full border-4 border-[#126319]">
-                    {image ? (
-                      <AvatarImage
-                        src={image}
-                        alt="profile"
-                        className="object-cover rounded-full"
-                      />
-                    ) : (
-                      <AvatarImage
-                        src={getAvatar(selectedAvatar)}
-                        alt="avatar"
-                        className="object-cover rounded-full"
-                      />
-                    )}
+                    {renderMainAvatar()}
                   </Avatar>
                   {hovered && (
                     <div
@@ -344,6 +406,21 @@ const Settings = () => {
                   />
                 </div>
 
+                {/* Warning/Info Message */}
+                <div className="mt-2 flex items-center space-x-2">
+                  <FaExclamationTriangle className="text-yellow-500" />
+                  {image ? (
+                    <span className="text-yellow-500 text-sm">
+                      Your custom profile picture is automatically saved.
+                    </span>
+                  ) : (
+                    <span className="text-yellow-500 text-sm">
+                      When changing your avatar, click "Save" to update your
+                      profile.
+                    </span>
+                  )}
+                </div>
+
                 {/* Avatar Selection */}
                 <div className="flex space-x-2">
                   {avatars.map((avatar, index) => (
@@ -355,7 +432,9 @@ const Settings = () => {
                             ? "ring-2 ring-[#126319]"
                             : ""
                         }`}
-                      onClick={() => setSelectedAvatar(index)}
+                      onClick={() => {
+                        setSelectedAvatar(index);
+                      }}
                     >
                       <img
                         src={avatar}
@@ -383,6 +462,7 @@ const Settings = () => {
                   </Label>
                   <Input
                     value={username}
+                    disabled
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full bg-[#3b3c48] border-none text-white py-2 px-3 rounded-md"
                   />

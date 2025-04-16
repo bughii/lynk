@@ -51,23 +51,49 @@ function ChatInfo() {
     setShowGroupInfo(true);
   };
 
+  const getFinalImageSrc = () => {
+    if (!selectedChatData) return null; // Handle case where data isn't loaded yet
+
+    const imagePath = selectedChatData.image;
+    const avatarIndex = selectedChatData.avatar;
+    let finalSrc = null; // Default to null if no image/avatar
+
+    // Determine final image URL using the standardized logic
+    if (imagePath) {
+      if (imagePath.startsWith("http") || imagePath.startsWith("data:")) {
+        finalSrc = imagePath;
+      } else {
+        finalSrc = `${HOST}/${
+          imagePath.startsWith("/") ? imagePath.substring(1) : imagePath
+        }`;
+      }
+    } else if (avatarIndex !== undefined && avatarIndex !== null) {
+      // Fallback to avatar
+      finalSrc = getAvatar(avatarIndex);
+    }
+    return finalSrc;
+  };
+
+  const finalImageSrc = getFinalImageSrc();
+
   return (
     <div className="h-[10vh] border-b-2 border-[#2f2303b] flex items-center justify-between px-5">
-      <div className="flex-1 flex items-center">
+      <div className="flex-1 flex items-center min-w-0">
         {selectedChatType === "group" ? (
           <div className="flex items-center">
             <span className="text-2xl text-gray-500 mr-2">#</span>
-            <div className="space-mono-regular text-lg text-white">
+            <div className="space-mono-regular text-lg text-white truncate">
               {selectedChatData.name}
             </div>
           </div>
         ) : (
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <div className="h-12 w-12 rounded-full overflow-hidden mr-3">
               <Avatar>
                 {selectedChatData.image ? (
                   <AvatarImage
-                    src={`${HOST}/${selectedChatData.image}`}
+                    key={finalImageSrc}
+                    src={finalImageSrc || undefined}
                     alt="profile-image"
                     className="object-cover w-full h-full bg-black"
                   />

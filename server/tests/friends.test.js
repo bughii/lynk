@@ -1,5 +1,3 @@
-// tests/friends.test.js
-//
 // Integration tests for the friends endpoints using Vitest and Supertest.
 // Endpoints tested:
 //   POST   /api/friendship/send-request
@@ -12,31 +10,24 @@
 //   POST   /api/friendship/search-friends
 //   GET    /api/friendship/get-friends-preview
 //   POST   /api/friendship/:userId/resetUnreadCount
-//
-// Run these tests with: npm run test:backend
 
 import request from "supertest";
 import express from "express";
-import { describe, it, beforeEach, expect, vi, waitFor } from "vitest";
+import { describe, it, beforeEach, expect, vi } from "vitest";
 import dotenv from "dotenv";
 
 // Load environment variables if needed.
 dotenv.config();
 
-// ----------------------------------------------------------------
 // Set Up Express App with Friends Routes
-// ----------------------------------------------------------------
 import friendsRoutes from "../routes/friendsRoutes.js";
 const app = express();
 app.use(express.json());
+
 // Mount the friends routes under /api/friendship
 app.use("/api/friendship", friendsRoutes);
 
-// ----------------------------------------------------------------
-// Mocks for Middleware and Models
-// ----------------------------------------------------------------
-
-// Mock verifyToken middleware to always set req.userId to a valid ObjectId.
+// Mock verifyToken middleware to always set req.userId to a valid ObjectId
 vi.mock("../middleware/verifyToken.js", () => ({
   verifyToken: (req, res, next) => {
     req.userId = "507f191e810c19729de860ea"; // valid test ObjectId
@@ -44,8 +35,7 @@ vi.mock("../middleware/verifyToken.js", () => ({
   },
 }));
 
-// ---------- Mock Friendship Model ----------
-// Fake Friendship constructor and attach static methods—all within the factory.
+// Fake Friendship constructor and attach static methods—all within the factory
 vi.mock("../models/friendsModel.js", () => {
   const FakeFriendship = vi.fn((data) => ({
     ...data,
@@ -62,7 +52,7 @@ vi.mock("../models/friendsModel.js", () => {
 });
 import { Friendship } from "../models/friendsModel.js";
 
-// ---------- Mock User Model (for resetUnreadCount) ----------
+// Mock User Model (for resetUnreadCount)
 vi.mock("../models/UserModel.js", () => ({
   User: {
     findByIdAndUpdate: vi.fn(),
@@ -70,7 +60,7 @@ vi.mock("../models/UserModel.js", () => ({
 }));
 import { User } from "../models/UserModel.js";
 
-// ---------- Mock Message Model (for get-friends-preview) ----------
+//  Mock Message Model (for get-friends-preview)
 vi.mock("../models/MessagesModel.js", () => ({
   Message: {
     aggregate: vi.fn(),
@@ -78,18 +68,13 @@ vi.mock("../models/MessagesModel.js", () => ({
 }));
 import { Message } from "../models/MessagesModel.js";
 
-// ----------------------------------------------------------------
-// Begin Friends Endpoints Integration Tests
-// ----------------------------------------------------------------
 describe("Friends Endpoints", () => {
   beforeEach(() => {
     // Clear all mocks before each test.
     vi.clearAllMocks();
   });
 
-  // -------------------------------
   // POST /send-request
-  // -------------------------------
   describe("POST /api/friendship/send-request", () => {
     it("should send a friend request when no existing request exists", async () => {
       // Simulate no existing friendship.
@@ -131,9 +116,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // GET /received-requests
-  // -------------------------------
   describe("GET /api/friendship/received-requests", () => {
     it("should return a list of received friend requests", async () => {
       const fakeRequests = [
@@ -173,9 +156,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // GET /sent-requests
-  // -------------------------------
   describe("GET /api/friendship/sent-requests", () => {
     it("should return a list of sent friend requests", async () => {
       const fakeRequests = [
@@ -203,9 +184,8 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // POST /accept-request
-  // -------------------------------
+
   describe("POST /api/friendship/accept-request", () => {
     it("should accept a friend request and return 200", async () => {
       const fakeFriendship = {
@@ -249,9 +229,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // POST /reject-request
-  // -------------------------------
   describe("POST /api/friendship/reject-request", () => {
     it("should reject a friend request and return 200", async () => {
       Friendship.findByIdAndUpdate.mockResolvedValue({
@@ -281,9 +259,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // GET /get-friends
-  // -------------------------------
   describe("GET /api/friendship/get-friends", () => {
     it("should return a list of friends for the current user", async () => {
       const fakeFriendships = [
@@ -335,9 +311,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // POST /remove-friend
-  // -------------------------------
   describe("POST /api/friendship/remove-friend", () => {
     it("should remove a friend and return 200", async () => {
       Friendship.findOneAndDelete.mockResolvedValue({ _id: "f1" });
@@ -367,9 +341,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // POST /search-friends
-  // -------------------------------
   describe("POST /api/friendship/search-friends", () => {
     it("should return a list of friends matching the search term", async () => {
       const fakeFriendships = [
@@ -429,9 +401,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // GET /get-friends-preview
-  // -------------------------------
   describe("GET /api/friendship/get-friends-preview", () => {
     it("should return a list of friends for preview using aggregation", async () => {
       const fakeAggregationResult = [
@@ -466,9 +436,7 @@ describe("Friends Endpoints", () => {
     });
   });
 
-  // -------------------------------
   // POST /:userId/resetUnreadCount
-  // -------------------------------
   describe("POST /api/friendship/:userId/resetUnreadCount", () => {
     it("should reset unread count for the given user and return 200", async () => {
       User.findByIdAndUpdate.mockResolvedValue({

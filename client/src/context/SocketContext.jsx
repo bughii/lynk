@@ -30,16 +30,15 @@ export const SocketProvider = ({ children }) => {
     updateGroupList,
   } = useChatStore();
   const setChatStoreSocket = useChatStore((state) => state.setSocket);
+  const userId = user?._id;
 
   useEffect(() => {
     // If the user is authenticated, create a new socket connection
-    if (user) {
-      console.log("⚡ Connecting to Socket.IO server:", HOST);
-
+    if (userId) {
       const newSocket = io(HOST, {
-        path: "/socket.io",
+        path: "/socket.io/",
         withCredentials: true,
-        query: { userId: user._id },
+        query: { userId: userId },
         transports: ["websocket", "polling"],
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
@@ -47,7 +46,8 @@ export const SocketProvider = ({ children }) => {
 
       // When the socket is connected, emit the event to the server to get the unread messages
       newSocket.on("connect", () => {
-        console.log("Socket connected, syncing unread counts...");
+        setSocket(newSocket); // Store the socket in state
+        setChatStoreSocket(newSocket); // Store the socket in chat store
         const { unreadMessagesCount, unreadGroupMessagesCount } =
           useChatStore.getState();
 
@@ -56,19 +56,21 @@ export const SocketProvider = ({ children }) => {
           unreadMessagesCount: unreadMessagesCount || {},
           unreadGroupMessagesCount: unreadGroupMessagesCount || {},
         });
-
-        // Store socket in ChatStore for broader access
-        setChatStoreSocket(newSocket);
       });
 
-      // Explicitly handle group message unread count acknowledgments
-      newSocket.on("resetSingleGroupUnreadCountAck", (data) => {
-        const { groupId, success } = data;
-        console.log(
-          `Reset group unread count for ${groupId}: ${
-            success ? "Success" : "Failed"
-          }`
-        );
+      newSocket.on("profileImageUpdated", ({ userId, imageUrl }) => {
+        const { updateUserProfileImage } = useChatStore.getState();
+
+        // Update the user's image across the app
+        if (updateUserProfileImage) {
+          updateUserProfileImage(userId, imageUrl);
+        }
+
+        // Also update in friend store if needed
+        const { updateFriendProfileImage } = useFriendStore.getState();
+        if (updateFriendProfileImage) {
+          updateFriendProfileImage(userId, imageUrl);
+        }
       });
 
       // When the server sends a new message, update the chat store
@@ -131,9 +133,6 @@ export const SocketProvider = ({ children }) => {
         } else {
           // Only increment unread count if we didn't send this message
           if (message.sender._id !== user._id) {
-            console.log(
-              `Incrementing unread count for group: ${message.groupId}`
-            );
             incrementGroupUnreadCount(message.groupId);
           }
         }
@@ -144,40 +143,19 @@ export const SocketProvider = ({ children }) => {
 
       // Handle full unread count states from server
       newSocket.on("fullUnreadMessagesState", (unreadMessages) => {
-        console.log(
-          "Received fullUnreadMessagesState:",
-          Object.keys(unreadMessages).length,
-          "conversations"
-        );
         setUnreadMessagesCount(unreadMessages || {});
       });
 
       newSocket.on("fullUnreadGroupMessagesState", (unreadGroupMessages) => {
-        console.log(
-          "Received fullUnreadGroupMessagesState:",
-          Object.keys(unreadGroupMessages).length,
-          "groups"
-        );
         setUnreadGroupMessagesCount(unreadGroupMessages || {});
       });
 
       // For backward compatibility
       newSocket.on("unreadMessagesState", (unreadMessages) => {
-        console.log(
-          "Received legacy unreadMessagesState:",
-          Object.keys(unreadMessages).length,
-          "conversations"
-        );
         setUnreadMessagesCount(unreadMessages || {});
       });
 
       newSocket.on("unreadGroupMessagesState", (unreadGroupMessages) => {
-        console.log(
-          "Received legacy unreadGroupMessagesState:",
-          Object.keys(unreadGroupMessages).length,
-          "groups"
-        );
-
         setUnreadGroupMessagesCount(unreadGroupMessages || {});
       });
 
@@ -190,7 +168,6 @@ export const SocketProvider = ({ children }) => {
       // Other event handlers remain the same
       newSocket.on("blockedByUser", (data) => {
         const { blockerId } = data;
-        console.log("You've been blocked by:", blockerId);
 
         // Get state updating methods from the store
         const {
@@ -224,7 +201,6 @@ export const SocketProvider = ({ children }) => {
       // Similar enhancement for the unblockedByUser event
       newSocket.on("unblockedByUser", (data) => {
         const { unblockerId } = data;
-        console.log("You've been unblocked by:", unblockerId);
 
         // Get state updating methods from the store
         const {
@@ -264,11 +240,6 @@ export const SocketProvider = ({ children }) => {
             selectedChatData,
             addSystemMessage,
           } = useChatStore.getState();
-
-          console.log("Received removedFromGroup event:", {
-            groupId,
-            groupName,
-          });
 
           // Update group in store with isActive: false and userRemoved: true
           updateGroup(groupId, {
@@ -428,8 +399,7 @@ export const SocketProvider = ({ children }) => {
       });
 
       newSocket.on("groupCreated", (createdGroup) => {
-        console.log("Received groupCreated event:", createdGroup);
-        // Add the newly created group to the chat store
+        // Add the created group to the chat store
         addGroup(createdGroup);
       });
 
@@ -440,8 +410,6 @@ export const SocketProvider = ({ children }) => {
           selectedChatData,
           addSystemMessage,
         } = useChatStore.getState();
-
-        console.log("Received groupDeleted event for:", groupId);
 
         // Instead of removing the group, mark it as deleted
         updateGroup(groupId, {
@@ -464,7 +432,6 @@ export const SocketProvider = ({ children }) => {
       });
 
       newSocket.on("addedToGroup", ({ group }) => {
-        console.log("Received addedToGroup event:", group);
         const { groups, addGroup, updateGroup } = useChatStore.getState();
 
         // Check if the group already exists
@@ -472,7 +439,6 @@ export const SocketProvider = ({ children }) => {
 
         if (!existingGroup) {
           // New group, add to the list
-          console.log("Adding new group to store:", group.name);
           addGroup({
             ...group,
             isActive: true,
@@ -480,7 +446,6 @@ export const SocketProvider = ({ children }) => {
           });
         } else {
           // Existing group, update its state
-          console.log("Updating existing group in store:", group.name);
           updateGroup(group._id, {
             isActive: true,
             userRemoved: false,
@@ -508,16 +473,14 @@ export const SocketProvider = ({ children }) => {
         }
       });
 
-      // PERFORM INITIAL FETCH
+      // Initial fetch
       newSocket.emit("fetchUnreadCounts", user._id);
-
-      setSocket(newSocket);
 
       // Clean up on unmount
       return () => {
         if (newSocket) {
-          console.log("Cleaning up socket listeners");
           newSocket.off("connect");
+          newSocket.off("profileImageUpdated");
           newSocket.off("fullUnreadMessagesState");
           newSocket.off("fullUnreadGroupMessagesState");
           newSocket.off("unreadMessagesState");
@@ -531,24 +494,22 @@ export const SocketProvider = ({ children }) => {
           newSocket.off("blockedByUser");
           newSocket.off("unblockedByUser");
 
-          newSocket.disconnect();
-          setChatStoreSocket(null);
+          if (newSocket && newSocket.connected) {
+            newSocket.disconnect();
+          } else if (newSocket) {
+            // If not connected but exists, still try to clean up resources
+            newSocket.disconnect();
+          }
         }
       };
+    } else {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+        setChatStoreSocket(null);
+      }
     }
-  }, [
-    user,
-    updateFriendStatus,
-    incrementUnreadCount,
-    incrementGroupUnreadCount,
-    setUnreadMessagesCount,
-    setUnreadGroupMessagesCount,
-    addGroup,
-    addMessage,
-    updateGroupList,
-    setChatStoreSocket,
-    t,
-  ]);
+  }, [userId, setChatStoreSocket, t]);
 
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>

@@ -45,15 +45,12 @@ services:
       context: ./client
       dockerfile: Dockerfile
       args:
-        # Pass whichever URL you want
-        VITE_SERVER_URL: "http://localhost:9001"
+        VITE_SERVER_URL: "http://localhost"
     container_name: client
     ports:
       - "80:80"
     depends_on:
       - server
-    # You can remove environment: - VITE_SERVER_URL=...
-    # because it's overshadowed by the build args
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     networks:

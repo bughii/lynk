@@ -22,7 +22,6 @@ const Profile = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    console.log("Is the user verified?", user.isVerified);
     if (user) {
       setSelectedAvatar(user.avatar || 0);
       if (user.image) {

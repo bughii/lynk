@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useChatStore } from "@/store/chatStore";
-import { useAuthStore } from "@/store/authStore"; // Make sure to add this import
+import { useAuthStore } from "@/store/authStore";
 import moment from "moment";
 import { apiClient } from "@/lib/api-client";
 import { GET_GROUP_MESSAGES, GET_MESSAGES_ROUTE } from "@/utils/constants";

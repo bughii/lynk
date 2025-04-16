@@ -283,6 +283,33 @@ const setupSocket = (server) => {
           );
         }
 
+        socket.on("profileImageUpdated", async (data) => {
+          try {
+            const { userId, imageUrl } = data;
+
+            // Validate the data
+            if (!userId || !imageUrl) {
+              console.error(
+                "Invalid data for profileImageUpdated event:",
+                data
+              );
+              return;
+            }
+
+            console.log(
+              `User ${userId} updated their profile image, broadcasting to all clients`
+            );
+
+            // Broadcast to all connected clients
+            io.emit("profileImageUpdated", {
+              userId,
+              imageUrl,
+            });
+          } catch (error) {
+            console.error("Error handling profileImageUpdated event:", error);
+          }
+        });
+
         // Single unread count reset for direct messages
         socket.on("resetSingleUnreadCount", async (data) => {
           try {

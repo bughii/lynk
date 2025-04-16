@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import axios from "axios";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { HOST } from "@/utils/constants";
+import { getAvatar } from "@/lib/utils";
 
 const API_URL = "http://localhost:9001/api/groups";
 
@@ -109,9 +111,6 @@ export const useChatStore = create(
 
           // Notify server about this reset if socket exists
           if (socket && socket.connected) {
-            console.log(
-              `Notifying server to reset count for sender: ${senderId}`
-            );
             socket.emit("resetSingleUnreadCount", { senderId });
           }
           return { unreadMessagesCount: newCount };
@@ -132,9 +131,6 @@ export const useChatStore = create(
 
           // Notify server about this reset if socket exists
           if (socket && socket.connected) {
-            console.log(
-              `Notifying server to reset count for group: ${groupId}`
-            );
             socket.emit("resetSingleGroupUnreadCount", { groupId });
           }
           return { unreadGroupMessagesCount: newCount };
@@ -152,7 +148,6 @@ export const useChatStore = create(
         const socket = get().socket;
         const { unreadMessagesCount, unreadGroupMessagesCount } = get();
         if (socket && socket.connected) {
-          console.log("Manually syncing unread counts with server");
           socket.emit("syncUnreadCounts", {
             unreadMessagesCount,
             unreadGroupMessagesCount,
@@ -175,7 +170,6 @@ export const useChatStore = create(
 
       // Increment unread count for group messages
       incrementGroupUnreadCount: (groupId) => {
-        console.log(`Incrementing local unread count for group: ${groupId}`);
         set((state) => {
           const newCount = {
             ...state.unreadGroupMessagesCount,
@@ -278,18 +272,6 @@ export const useChatStore = create(
         return directCount + groupCount;
       },
 
-      // Debug state
-      debugState: () => {
-        const state = get();
-        console.log("Current Chat Store State:", {
-          selectedChatData: state.selectedChatData,
-          selectedChatType: state.selectedChatType,
-          unreadMessagesCount: state.unreadMessagesCount,
-          unreadGroupMessagesCount: state.unreadGroupMessagesCount,
-          totalUnreadCount: state.getTotalUnreadCount(),
-        });
-      },
-
       // Update group ordering after new message
       updateGroupList: (message) => {
         const groups = get().groups;
@@ -368,6 +350,167 @@ export const useChatStore = create(
             },
           ],
         })),
+
+      updateUserProfileImage: (userId, newImagePath) => {
+        if (!userId) return; // Guard clause
+
+        // Determine the correct path to store
+        let pathToStore = null; // Default to null
+        let finalImageUrlForDisplay = null; // The full URL or asset path for immediate display
+
+        if (newImagePath) {
+          if (
+            newImagePath.startsWith("http") ||
+            newImagePath.startsWith("data:")
+          ) {
+            finalImageUrlForDisplay = newImagePath;
+            // Attempt to determine relative path for storage
+            if (newImagePath.startsWith(`${HOST}/`)) {
+              pathToStore = newImagePath.substring(HOST.length + 1);
+            } else if (
+              !newImagePath.startsWith("data:") &&
+              !newImagePath.startsWith("/assets/")
+            ) {
+              pathToStore = newImagePath;
+            }
+          } else if (newImagePath.startsWith("/assets/")) {
+            // Handle avatar asset paths directly
+            finalImageUrlForDisplay = newImagePath;
+            pathToStore = null; // Store null when it's an avatar asset path
+          } else {
+            pathToStore = newImagePath.startsWith("/")
+              ? newImagePath.substring(1)
+              : newImagePath;
+            finalImageUrlForDisplay = `${HOST}/${pathToStore}`;
+          }
+        } else {
+          // If newImagePath is null/undefined, means image removed, likely fallback to avatar
+          finalImageUrlForDisplay = getAvatar(0); // getAvatar(0) gets default
+          pathToStore = null; // Store null for image
+        }
+
+        set((state) => {
+          const updates = {};
+
+          // 1. Update direct messages friends list
+          if (state.directMessagesFriends.length > 0) {
+            updates.directMessagesFriends = state.directMessagesFriends.map(
+              (friend) =>
+                friend._id === userId
+                  ? {
+                      ...friend,
+                      image: pathToStore,
+                      avatar: pathToStore ? undefined : friend.avatar ?? 0,
+                    }
+                  : friend
+            );
+          }
+
+          // 2. Update in groups (members and admin)
+          if (state.groups.length > 0) {
+            updates.groups = state.groups.map((group) => ({
+              ...group,
+              members:
+                group.members?.map((member) =>
+                  member._id === userId
+                    ? {
+                        ...member,
+                        image: pathToStore,
+                        avatar: pathToStore ? undefined : member.avatar ?? 0,
+                      }
+                    : member
+                ) || [],
+              admin:
+                group.admin?._id === userId
+                  ? {
+                      ...group.admin,
+                      image: pathToStore,
+                      avatar: pathToStore ? undefined : group.admin.avatar ?? 0,
+                    }
+                  : group.admin,
+            }));
+          }
+
+          // 3. Update in currently selected chat
+          if (
+            state.selectedChatType === "friend" &&
+            state.selectedChatData &&
+            state.selectedChatData._id === userId
+          ) {
+            updates.selectedChatData = {
+              ...state.selectedChatData,
+              image: pathToStore,
+              avatar: pathToStore
+                ? undefined
+                : state.selectedChatData.avatar ?? 0,
+            };
+          } else if (
+            state.selectedChatType === "group" &&
+            state.selectedChatData // Check if selectedChatData exists
+          ) {
+            // Also update admin/member info if the group is selected
+            let groupUpdated = false;
+            const updatedMembers =
+              state.selectedChatData.members?.map((member) => {
+                if (member._id === userId) {
+                  groupUpdated = true;
+                  return {
+                    ...member,
+                    image: pathToStore,
+                    avatar: pathToStore ? undefined : member.avatar ?? 0,
+                  };
+                }
+                return member;
+              }) || [];
+            const updatedAdmin =
+              state.selectedChatData.admin?._id === userId
+                ? {
+                    ...state.selectedChatData.admin,
+                    image: pathToStore,
+                    avatar: pathToStore
+                      ? undefined
+                      : state.selectedChatData.admin.avatar ?? 0,
+                  }
+                : state.selectedChatData.admin;
+            if (state.selectedChatData.admin?._id === userId)
+              groupUpdated = true;
+
+            if (groupUpdated) {
+              updates.selectedChatData = {
+                ...state.selectedChatData,
+                members: updatedMembers,
+                admin: updatedAdmin,
+              };
+            }
+          }
+
+          // 4. Update historical messages
+          let messagesUpdated = false;
+          const updatedMessages = state.selectedChatMessages.map((message) => {
+            // Only update if message has a sender and sender._id matches
+            if (message.sender && message.sender._id === userId) {
+              messagesUpdated = true; // Flag that we made a change
+              return {
+                ...message,
+                sender: {
+                  ...message.sender,
+                  image: pathToStore, // Update the image path
+                  avatar: pathToStore ? undefined : message.sender.avatar ?? 0, // Update avatar index consistently
+                },
+              };
+            }
+            return message; // Return unchanged message if sender doesn't match
+          });
+
+          // Only update the selectedChatMessages state if changes were actually made
+          if (messagesUpdated) {
+            updates.selectedChatMessages = updatedMessages;
+          }
+
+          // Return all updates
+          return updates;
+        });
+      },
 
       // Update a group with new properties
       updateGroup: (groupId, updates) =>

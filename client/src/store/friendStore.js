@@ -172,7 +172,6 @@ export const useFriendStore = create((set) => ({
   },
 
   searchFriends: async (searchTerm) => {
-    console.log("search Term", searchTerm);
     try {
       const response = await axios.post(`${API_URL}/search-friends`, {
         searchTerm,
@@ -192,9 +191,6 @@ export const useFriendStore = create((set) => ({
   getChatPreview: async () => {
     try {
       const response = await axios.get(`${API_URL}/get-friends-preview`);
-      if (response.data.friends) {
-        console.log(response.data.friends);
-      }
       set({ friendsPreview: response.data.friends });
       return response;
     } catch (error) {
@@ -202,7 +198,6 @@ export const useFriendStore = create((set) => ({
     }
   },
 
-  // Esempio di funzione nel tuo store
   updateFriendStatus: (userId, isOnline) =>
     set((state) => ({
       friends: state.friends.map((friend) =>
@@ -212,4 +207,62 @@ export const useFriendStore = create((set) => ({
         friend._id === userId ? { ...friend, isOnline } : friend
       ),
     })),
+
+  updateFriendProfileImage: (userId, imageUrl) => {
+    if (!userId || !imageUrl) return;
+
+    set((state) => {
+      // Update friends list
+      const updatedFriends = state.friends.map((friend) =>
+        friend._id === userId ? { ...friend, image: imageUrl } : friend
+      );
+
+      // Update friends preview
+      const updatedFriendsPreview = state.friendsPreview.map((friend) =>
+        friend._id === userId ? { ...friend, image: imageUrl } : friend
+      );
+
+      // Update received requests (if user sent a request)
+      const updatedReceivedRequests = state.receivedRequests.map((request) => {
+        if (request.requester && request.requester._id === userId) {
+          return {
+            ...request,
+            requester: {
+              ...request.requester,
+              image: imageUrl,
+            },
+          };
+        }
+        return request;
+      });
+
+      // Update sent requests (if user received a request)
+      const updatedSentRequests = state.sentRequests.map((request) => {
+        if (request.recipient && request.recipient._id === userId) {
+          return {
+            ...request,
+            recipient: {
+              ...request.recipient,
+              image: imageUrl,
+            },
+          };
+        }
+        return request;
+      });
+
+      // Update searched friends list
+      const updatedSearchedFriendsList = state.searchedFriendsList.map(
+        (friend) =>
+          friend._id === userId ? { ...friend, image: imageUrl } : friend
+      );
+
+      return {
+        friends: updatedFriends,
+        friendsPreview: updatedFriendsPreview,
+        receivedRequests: updatedReceivedRequests,
+        sentRequests: updatedSentRequests,
+        searchedFriendsList: updatedSearchedFriendsList,
+      };
+    });
+  },
 }));

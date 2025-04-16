@@ -1,11 +1,12 @@
 import { useChatStore } from "@/store/chatStore";
-import { Avatar, AvatarImage } from "./ui/avatar";
-import { HOST } from "@/utils/constants";
-import { getAvatar } from "@/lib/utils";
-import { ScrollArea } from "./ui/scroll-area";
 import { useFriendStore } from "@/store/friendStore";
 import { motion } from "framer-motion";
+import { ScrollArea } from "./ui/scroll-area";
+import { Avatar, AvatarImage } from "./ui/avatar";
+import { getAvatar } from "@/lib/utils";
+import { HOST } from "@/utils/constants";
 import { useTranslation } from "react-i18next";
+import React from "react";
 
 function ChatPreview() {
   const {
@@ -16,23 +17,16 @@ function ChatPreview() {
     unreadMessagesCount,
     resetUnreadCount,
   } = useChatStore();
-
   const { friendsPreview } = useFriendStore();
   const { t } = useTranslation();
 
   const handleClick = (friend) => {
-    console.log("Clicked on chat:", friend);
-
     setSelectedChatType("friend");
 
-    // Only update if selecting a different chat
     if (!selectedChatData || selectedChatData._id !== friend._id) {
       setSelectedChatData(friend);
       setSelectedChatMessages([]);
-
-      // Reset unread count for this specific friend
       if (friend && friend._id) {
-        console.log("Resetting unread count for:", friend._id);
         resetUnreadCount(friend._id);
       }
     }
@@ -64,6 +58,13 @@ function ChatPreview() {
             const isSelected =
               selectedChatData && selectedChatData._id === friend._id;
 
+            // Determine final image URL
+            const finalImageSrc = friend.image?.startsWith("http")
+              ? friend.image
+              : friend.image
+              ? `${HOST}/${friend.image}`
+              : getAvatar(friend.avatar); // fallback if no friend.image at all
+
             return (
               <motion.div
                 custom={i}
@@ -80,19 +81,11 @@ function ChatPreview() {
               >
                 <div className="relative mr-3">
                   <Avatar className="h-12 w-12 rounded-full overflow-hidden border-2 border-[#2f303b]">
-                    {friend.image ? (
-                      <AvatarImage
-                        src={`${HOST}/${friend.image}`}
-                        alt="profile-image"
-                        className="object-cover w-full h-full bg-black"
-                      />
-                    ) : (
-                      <AvatarImage
-                        src={getAvatar(friend.avatar)}
-                        alt="avatar"
-                        className="object-cover w-full h-full"
-                      />
-                    )}
+                    <AvatarImage
+                      src={finalImageSrc}
+                      alt="profile-image"
+                      className="object-cover w-full h-full bg-black"
+                    />
                   </Avatar>
 
                   {/* Online indicator */}
