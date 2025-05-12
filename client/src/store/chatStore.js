@@ -99,42 +99,39 @@ export const useChatStore = create(
 
       // Reset unread count for direct messages
       resetUnreadCount: (senderId) => {
-        if (!senderId) {
-          console.warn("Cannot reset unread count: No sender ID provided");
-          return;
-        }
+        if (!senderId) return;
+
         const socket = get().socket;
-        // Update local state immediately
+
+        // Update the local state immediately
         set((state) => {
           const newCount = { ...state.unreadMessagesCount };
           delete newCount[senderId];
-
-          // Notify server about this reset if socket exists
-          if (socket && socket.connected) {
-            socket.emit("resetSingleUnreadCount", { senderId });
-          }
           return { unreadMessagesCount: newCount };
         });
+
+        // Notify the server only if the socket is connected
+        if (socket && socket.connected) {
+          socket.emit("resetSingleUnreadCount", { senderId });
+        }
       },
 
-      // Reset unread count for group messages
       resetGroupUnreadCount: (groupId) => {
-        if (!groupId) {
-          console.warn("Cannot reset group unread count: No group ID provided");
-          return;
-        }
+        if (!groupId) return;
+
         const socket = get().socket;
-        // Update local state immediately
+
+        // Update the local state immediately
         set((state) => {
           const newCount = { ...state.unreadGroupMessagesCount };
           delete newCount[groupId];
-
-          // Notify server about this reset if socket exists
-          if (socket && socket.connected) {
-            socket.emit("resetSingleGroupUnreadCount", { groupId });
-          }
           return { unreadGroupMessagesCount: newCount };
         });
+
+        // Notify the server only if the socket is connected
+        if (socket && socket.connected) {
+          socket.emit("resetSingleGroupUnreadCount", { groupId });
+        }
       },
 
       // Initialize the socket connection

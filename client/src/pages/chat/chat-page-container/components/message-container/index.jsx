@@ -17,6 +17,7 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { useSocket } from "@/context/SocketContext";
 
 const FONT_SIZES = {
   small: "1rem",
@@ -35,9 +36,33 @@ function MessageContainer() {
   const { user } = useAuthStore(); // Get the current user
   const { t } = useTranslation();
   const scrollRef = useRef();
+  const socket = useSocket();
+  const { resetUnreadCount, resetGroupUnreadCount } = useChatStore();
 
   const [showImage, setShowImage] = useState(false);
   const [imageURL, setImageURL] = useState(null);
+
+  useEffect(() => {
+    if (socket && selectedChatData?._id) {
+      // Entra nella chat
+      socket.emit("joinChat", {
+        chatId: selectedChatData._id,
+        chatType: selectedChatType,
+      });
+
+      // Resetta il contatore locale immediatamente
+      if (selectedChatType === "friend") {
+        resetUnreadCount(selectedChatData._id);
+      } else if (selectedChatType === "group") {
+        resetGroupUnreadCount(selectedChatData._id);
+      }
+
+      return () => {
+        // Esci dalla chat quando cambi
+        socket.emit("leaveChat");
+      };
+    }
+  }, [selectedChatData?._id, selectedChatType, socket]);
 
   useEffect(() => {
     // Fetch messages for the selected chat

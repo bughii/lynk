@@ -6,7 +6,7 @@ import { BlockedUser } from "./models/BlockedUserModel.js";
 
 // Setting up the socket server for handling websocket connections
 const setupSocket = (server) => {
-  console.log("⚡ Initializing Socket.IO server in Docker environment");
+  console.log("⚡Initializing Socket.IO server in Docker environment");
   const io = new SocketIOServer(server, {
     cors: {
       origin: ["http://localhost", "http://client"],
@@ -22,12 +22,45 @@ const setupSocket = (server) => {
 
   // Map to track which socket is connected to which user
   const userSocketMap = new Map();
+  const userActiveChatMap = new Map();
+
+  const cleanupUnreadCountForChat = async (userId, chatId, chatType) => {
+    try {
+      const user = await User.findById(userId);
+      if (!user) return;
+
+      if (chatType === "friend") {
+        const unreadMessagesCount = { ...(user.unreadMessagesCount || {}) };
+        if (unreadMessagesCount[chatId] !== undefined) {
+          delete unreadMessagesCount[chatId];
+          await User.findByIdAndUpdate(userId, { unreadMessagesCount });
+          console.log(
+            `Cleaned up unread count for user ${userId} in chat ${chatId}`
+          );
+        }
+      } else if (chatType === "group") {
+        const unreadGroupMessagesCount = {
+          ...(user.unreadGroupMessagesCount || {}),
+        };
+        if (unreadGroupMessagesCount[chatId] !== undefined) {
+          delete unreadGroupMessagesCount[chatId];
+          await User.findByIdAndUpdate(userId, { unreadGroupMessagesCount });
+          console.log(
+            `Cleaned up group unread count for user ${userId} in group ${chatId}`
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error cleaning up unread count:", error);
+    }
+  };
 
   // Handle disconnections by removing socket from map and updating user status
   const disconnect = (socket) => {
     for (const [userId, socketId] of userSocketMap.entries()) {
       if (socketId === socket.id) {
         userSocketMap.delete(userId);
+        userActiveChatMap.delete(userId);
         io.emit("userStatusUpdate", { userId, isOnline: false });
         break;
       }
@@ -90,27 +123,39 @@ const setupSocket = (server) => {
 
         io.to(recipientSocketId).emit("receiveMessage", messageForRecipient);
 
-        // Increment unread count for offline or different-tab recipients
-        const recipient = await User.findById(message.recipient);
-        if (recipient) {
-          // Create a copy of the unread messages count
-          const unreadMessagesCount =
-            { ...recipient.unreadMessagesCount } || {};
+        const recipientActiveChat = userActiveChatMap.get(message.recipient);
+        const isRecipientInChat =
+          recipientActiveChat &&
+          recipientActiveChat.chatType === "friend" &&
+          recipientActiveChat.chatId === message.sender;
 
-          // Increment count for the sender
-          unreadMessagesCount[message.sender] =
-            (unreadMessagesCount[message.sender] || 0) + 1;
-
-          // Update user document with new count
-          await User.findByIdAndUpdate(
+        if (isRecipientInChat) {
+          // Se il destinatario è nella chat, pulisci il contatore invece di incrementarlo
+          await cleanupUnreadCountForChat(
             message.recipient,
-            { unreadMessagesCount },
-            { new: true }
+            message.sender,
+            "friend"
           );
+        } else {
+          // Solo se NON è nella chat, incrementa il contatore
+          const recipient = await User.findById(message.recipient);
+          if (recipient) {
+            const unreadMessagesCount = {
+              ...(recipient.unreadMessagesCount || {}),
+            };
+            unreadMessagesCount[message.sender] =
+              (unreadMessagesCount[message.sender] || 0) + 1;
 
-          console.log(
-            `Incremented unread count for ${message.sender} to recipient ${message.recipient}`
-          );
+            await User.findByIdAndUpdate(
+              message.recipient,
+              { unreadMessagesCount },
+              { new: true }
+            );
+
+            console.log(
+              `Incremented unread count for ${message.sender} to recipient ${message.recipient}`
+            );
+          }
         }
       }
     } catch (error) {
@@ -233,24 +278,34 @@ const setupSocket = (server) => {
       // Update the unread group count in the DB for all group members except the sender
       for (const memberId of allMemberIds) {
         if (memberId === sender.toString()) continue; // skip the sender
-        const user = await User.findById(memberId);
-        if (user) {
-          // Create or clone the current unread group messages count
-          const currentGroupCounts = {
-            ...(user.unreadGroupMessagesCount || {}),
-          };
-          // Increment the count for this group
-          currentGroupCounts[groupId] = (currentGroupCounts[groupId] || 0) + 1;
 
-          // Update the user document with the new count
-          await User.findByIdAndUpdate(
-            memberId,
-            { unreadGroupMessagesCount: currentGroupCounts },
-            { new: true }
-          );
-          console.log(
-            `Incremented persistent unread group count for group ${groupId} for member ${memberId}`
-          );
+        const memberActiveChat = userActiveChatMap.get(memberId);
+        const isMemberInGroup =
+          memberActiveChat &&
+          memberActiveChat.chatType === "group" &&
+          memberActiveChat.chatId === groupId.toString();
+
+        if (!isMemberInGroup) {
+          const user = await User.findById(memberId);
+          if (user) {
+            // Create or clone the current unread group messages count
+            const currentGroupCounts = {
+              ...(user.unreadGroupMessagesCount || {}),
+            };
+            // Increment the count for this group
+            currentGroupCounts[groupId] =
+              (currentGroupCounts[groupId] || 0) + 1;
+
+            // Update the user document with the new count
+            await User.findByIdAndUpdate(
+              memberId,
+              { unreadGroupMessagesCount: currentGroupCounts },
+              { new: true }
+            );
+            console.log(
+              `Incremented persistent unread group count for group ${groupId} for member ${memberId}`
+            );
+          }
         }
       }
     } catch (error) {
@@ -270,18 +325,62 @@ const setupSocket = (server) => {
         await User.findByIdAndUpdate(userId, { isOnline: true });
         io.emit("userStatusUpdate", { userId, isOnline: true });
 
-        // Send initial unread counts to client
-        const user = await User.findById(userId);
-        if (user) {
-          socket.emit(
-            "fullUnreadMessagesState",
-            user.unreadMessagesCount || {}
-          );
-          socket.emit(
-            "fullUnreadGroupMessagesState",
-            user.unreadGroupMessagesCount || {}
-          );
-        }
+        socket.on("initializeWithChat", async (data) => {
+          const { chatId, chatType } = data;
+
+          // Salva quale chat l'utente ha aperto
+          if (chatId && chatType) {
+            userActiveChatMap.set(userId, { chatId, chatType });
+
+            // CHIAMA LA FUNZIONE QUI - Pulisci i contatori per questa chat
+            await cleanupUnreadCountForChat(userId, chatId, chatType);
+          }
+
+          // Ora recupera i contatori aggiornati dal database
+          const user = await User.findById(userId);
+          if (user) {
+            const unreadMessagesCount = user.unreadMessagesCount || {};
+            const unreadGroupMessagesCount =
+              user.unreadGroupMessagesCount || {};
+
+            // Invia i contatori corretti (già puliti dalla funzione sopra)
+            socket.emit("fullUnreadMessagesState", unreadMessagesCount);
+            socket.emit(
+              "fullUnreadGroupMessagesState",
+              unreadGroupMessagesCount
+            );
+          }
+        });
+        socket.on("joinChat", async (chatData) => {
+          const { chatId, chatType } = chatData;
+          userActiveChatMap.set(userId, { chatId, chatType });
+
+          await cleanupUnreadCountForChat(userId, chatId, chatType);
+
+          // Resetta il contatore per questa chat nel database
+          const user = await User.findById(userId);
+          if (user) {
+            if (chatType === "friend") {
+              const unreadMessagesCount = {
+                ...(user.unreadMessagesCount || {}),
+              };
+              delete unreadMessagesCount[chatId];
+              await User.findByIdAndUpdate(userId, { unreadMessagesCount });
+            } else if (chatType === "group") {
+              const unreadGroupMessagesCount = {
+                ...(user.unreadGroupMessagesCount || {}),
+              };
+              delete unreadGroupMessagesCount[chatId];
+              await User.findByIdAndUpdate(userId, {
+                unreadGroupMessagesCount,
+              });
+            }
+          }
+        });
+
+        socket.on("leaveChat", () => {
+          userActiveChatMap.delete(userId);
+        });
 
         socket.on("profileImageUpdated", async (data) => {
           try {
@@ -327,44 +426,18 @@ const setupSocket = (server) => {
               `User ${userId} is resetting unread count for sender ${senderId}`
             );
 
-            const user = await User.findById(userId);
-            if (!user || !user.unreadMessagesCount) {
-              socket.emit("resetSingleUnreadCountAck", {
-                senderId,
-                success: false,
-              });
-              return;
-            }
+            // USA SOLO LA FUNZIONE HELPER - non fare il lavoro due volte!
+            await cleanupUnreadCountForChat(userId, senderId, "friend");
 
-            // Create a copy of user's unread counts
-            const updatedUnreadCount = { ...user.unreadMessagesCount };
+            // Conferma che è stato fatto
+            socket.emit("resetSingleUnreadCountAck", {
+              senderId,
+              success: true,
+            });
 
-            // Only remove this specific sender's count
-            if (updatedUnreadCount[senderId] !== undefined) {
-              delete updatedUnreadCount[senderId];
-
-              // Update database with modified unread counts
-              await User.findByIdAndUpdate(userId, {
-                unreadMessagesCount: updatedUnreadCount,
-              });
-
-              // Send acknowledgment to just this client
-              socket.emit("resetSingleUnreadCountAck", {
-                senderId,
-                success: true,
-              });
-
-              console.log(
-                `Reset unread count for ${senderId} in user ${userId}'s document`
-              );
-            } else {
-              // Nothing to remove
-              socket.emit("resetSingleUnreadCountAck", {
-                senderId,
-                success: true,
-                message: "No unread count existed",
-              });
-            }
+            console.log(
+              `Reset unread count for ${senderId} in user ${userId}'s document`
+            );
           } catch (error) {
             console.error("Error in resetSingleUnreadCount:", error);
             socket.emit("resetSingleUnreadCountAck", {
@@ -392,44 +465,18 @@ const setupSocket = (server) => {
               `User ${userId} is resetting unread count for group ${groupId}`
             );
 
-            const user = await User.findById(userId);
-            if (!user || !user.unreadGroupMessagesCount) {
-              socket.emit("resetSingleGroupUnreadCountAck", {
-                groupId,
-                success: false,
-              });
-              return;
-            }
+            // USA SOLO LA FUNZIONE HELPER
+            await cleanupUnreadCountForChat(userId, groupId, "group");
 
-            // Create a copy of user's unread group counts
-            const updatedUnreadCount = { ...user.unreadGroupMessagesCount };
+            // Conferma che è stato fatto
+            socket.emit("resetSingleGroupUnreadCountAck", {
+              groupId,
+              success: true,
+            });
 
-            // Only remove this specific group's count
-            if (updatedUnreadCount[groupId] !== undefined) {
-              delete updatedUnreadCount[groupId];
-
-              // Update database with modified unread counts
-              await User.findByIdAndUpdate(userId, {
-                unreadGroupMessagesCount: updatedUnreadCount,
-              });
-
-              // Send acknowledgment to just this client
-              socket.emit("resetSingleGroupUnreadCountAck", {
-                groupId,
-                success: true,
-              });
-
-              console.log(
-                `Reset unread count for group ${groupId} in user ${userId}'s document`
-              );
-            } else {
-              // Nothing to remove
-              socket.emit("resetSingleGroupUnreadCountAck", {
-                groupId,
-                success: true,
-                message: "No unread count existed",
-              });
-            }
+            console.log(
+              `Reset unread count for group ${groupId} in user ${userId}'s document`
+            );
           } catch (error) {
             console.error("Error in resetSingleGroupUnreadCount:", error);
             socket.emit("resetSingleGroupUnreadCountAck", {

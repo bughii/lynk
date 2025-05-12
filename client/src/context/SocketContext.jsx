@@ -51,6 +51,12 @@ export const SocketProvider = ({ children }) => {
         const { unreadMessagesCount, unreadGroupMessagesCount } =
           useChatStore.getState();
 
+        const { selectedChatData, selectedChatType } = useChatStore.getState();
+        newSocket.emit("initializeWithChat", {
+          chatId: selectedChatData?._id || null,
+          chatType: selectedChatData ? selectedChatType : null,
+        });
+
         // Always emit current unread counts to server for merging
         newSocket.emit("syncUnreadCounts", {
           unreadMessagesCount: unreadMessagesCount || {},

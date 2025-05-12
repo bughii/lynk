@@ -38,19 +38,10 @@ const RedirectAuthenticatedUser = ({ children }) => {
 const App = () => {
   // Recupero lo stato con zustand
   const { isCheckingAuth, checkAuth, user, isAuthenticated } = useAuthStore();
-  const initializeSocket = useChatStore((state) => state.initializeSocket);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
-
-  useEffect(() => {
-    // Initialize the socket only if the user is authenticated and their ID is available
-    if (isAuthenticated && user && user._id) {
-      console.log("Initializing socket for user:", user._id);
-      initializeSocket(user._id);
-    }
-  }, [isAuthenticated, user, initializeSocket]);
 
   if (isCheckingAuth) {
     return <div>Loading...</div>;
