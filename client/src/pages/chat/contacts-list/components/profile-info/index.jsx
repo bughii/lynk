@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/authStore";
-import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { FiEdit2 } from "react-icons/fi";
@@ -12,6 +11,7 @@ import PendingRequests from "@/pages/chat/empty-chat-page-container/sent-request
 import AddContact from "@/pages/chat/empty-chat-page-container/add-contact";
 import { useTranslation } from "react-i18next";
 import BlockedUsersList from "@/pages/chat/empty-chat-page-container/blocked-users";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 import {
   DropdownMenu,
@@ -69,7 +69,7 @@ function ProfileInfoComponent() {
           <Avatar className="h-10 w-10 rounded-full overflow-hidden">
             {user.image ? (
               <AvatarImage
-                src={`${HOST}/${user.image}`}
+                src={getProfileImage(user.image, user.avatar)}
                 alt="profile-image"
                 className="object-cover w-full h-full bg-black"
               />

@@ -6,11 +6,10 @@ import { BlockedUser } from "./models/BlockedUserModel.js";
 
 // Setting up the socket server for handling websocket connections
 const setupSocket = (server) => {
-  console.log("⚡Initializing Socket.IO server in Docker environment");
+  console.log("Initializing Socket.IO server");
   const io = new SocketIOServer(server, {
     cors: {
-      origin: ["http://localhost", "http://client"],
-      methods: ["GET", "POST"],
+      origin: true,
       credentials: true,
     },
     // Explicitly set path and allow all transports
@@ -23,6 +22,24 @@ const setupSocket = (server) => {
   // Map to track which socket is connected to which user
   const userSocketMap = new Map();
   const userActiveChatMap = new Map();
+  const offlineTimers = new Map();
+
+  function markOnline(userId) {
+    clearTimeout(offlineTimers.get(userId));
+    offlineTimers.delete(userId);
+    io.emit("userStatusUpdate", { userId, isOnline: true });
+  }
+
+  function markOfflineLater(userId) {
+    if (offlineTimers.has(userId)) return;
+    offlineTimers.set(
+      userId,
+      setTimeout(() => {
+        offlineTimers.delete(userId);
+        io.emit("userStatusUpdate", { userId, isOnline: false });
+      }, 5000)
+    );
+  }
 
   const cleanupUnreadCountForChat = async (userId, chatId, chatType) => {
     try {
@@ -323,27 +340,22 @@ const setupSocket = (server) => {
         // Track the user's socket and set online status
         userSocketMap.set(userId, socket.id);
         await User.findByIdAndUpdate(userId, { isOnline: true });
-        io.emit("userStatusUpdate", { userId, isOnline: true });
+        markOnline(userId);
 
         socket.on("initializeWithChat", async (data) => {
           const { chatId, chatType } = data;
-
-          // Salva quale chat l'utente ha aperto
           if (chatId && chatType) {
             userActiveChatMap.set(userId, { chatId, chatType });
 
-            // CHIAMA LA FUNZIONE QUI - Pulisci i contatori per questa chat
             await cleanupUnreadCountForChat(userId, chatId, chatType);
           }
 
-          // Ora recupera i contatori aggiornati dal database
           const user = await User.findById(userId);
           if (user) {
             const unreadMessagesCount = user.unreadMessagesCount || {};
             const unreadGroupMessagesCount =
               user.unreadGroupMessagesCount || {};
 
-            // Invia i contatori corretti (già puliti dalla funzione sopra)
             socket.emit("fullUnreadMessagesState", unreadMessagesCount);
             socket.emit(
               "fullUnreadGroupMessagesState",
@@ -356,8 +368,6 @@ const setupSocket = (server) => {
           userActiveChatMap.set(userId, { chatId, chatType });
 
           await cleanupUnreadCountForChat(userId, chatId, chatType);
-
-          // Resetta il contatore per questa chat nel database
           const user = await User.findById(userId);
           if (user) {
             if (chatType === "friend") {
@@ -426,10 +436,8 @@ const setupSocket = (server) => {
               `User ${userId} is resetting unread count for sender ${senderId}`
             );
 
-            // USA SOLO LA FUNZIONE HELPER - non fare il lavoro due volte!
             await cleanupUnreadCountForChat(userId, senderId, "friend");
 
-            // Conferma che è stato fatto
             socket.emit("resetSingleUnreadCountAck", {
               senderId,
               success: true,
@@ -465,10 +473,7 @@ const setupSocket = (server) => {
               `User ${userId} is resetting unread count for group ${groupId}`
             );
 
-            // USA SOLO LA FUNZIONE HELPER
             await cleanupUnreadCountForChat(userId, groupId, "group");
-
-            // Conferma che è stato fatto
             socket.emit("resetSingleGroupUnreadCountAck", {
               groupId,
               success: true,
@@ -872,13 +877,13 @@ const setupSocket = (server) => {
         // Handle disconnection
         socket.on("disconnect", async () => {
           try {
-            const user = await User.findById(userId);
+            await User.findByIdAndUpdate(userId, { isOnline: false }).catch(
+              () => {}
+            );
 
-            if (user) {
-              // Update online status
-              await User.findByIdAndUpdate(userId, { isOnline: false });
-              disconnect(socket);
-            }
+            userSocketMap.delete(userId);
+            userActiveChatMap.delete(userId);
+            markOfflineLater(userId);
           } catch (error) {
             console.error("Error during disconnect:", error);
           }

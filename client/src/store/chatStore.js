@@ -1,10 +1,7 @@
 import { create } from "zustand";
-import axios from "axios";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
-
-const API_URL = "http://localhost:9001/api/groups";
+import { apiClient } from "@/lib/api-client";
 
 // A persistent store for chat state including unread message counts
 export const useChatStore = create(
@@ -241,7 +238,7 @@ export const useChatStore = create(
       // Fetch user groups from the server
       fetchUserGroups: async () => {
         try {
-          const response = await axios.get(`${API_URL}/get-user-groups`);
+          const response = await apiClient.get("/groups/get-user-groups");
           if (response.data.groups) {
             const groupsWithActive = response.data.groups.map((group) => ({
               ...group,
@@ -349,41 +346,34 @@ export const useChatStore = create(
         })),
 
       updateUserProfileImage: (userId, newImagePath) => {
-        if (!userId) return; // Guard clause
+        if (!userId) return;
 
-        // Determine the correct path to store
-        let pathToStore = null; // Default to null
-        let finalImageUrlForDisplay = null; // The full URL or asset path for immediate display
+        let pathToStore = null;
+        let finalImageUrlForDisplay = null;
 
         if (newImagePath) {
+          // 1) Absolute URLs (or data URIs)
           if (
             newImagePath.startsWith("http") ||
             newImagePath.startsWith("data:")
           ) {
             finalImageUrlForDisplay = newImagePath;
-            // Attempt to determine relative path for storage
-            if (newImagePath.startsWith(`${HOST}/`)) {
-              pathToStore = newImagePath.substring(HOST.length + 1);
-            } else if (
-              !newImagePath.startsWith("data:") &&
-              !newImagePath.startsWith("/assets/")
-            ) {
+
+            try {
+              const origin = window.location.origin;
+              pathToStore = newImagePath.startsWith(origin)
+                ? newImagePath.slice(origin.length)
+                : newImagePath;
+            } catch {
               pathToStore = newImagePath;
             }
-          } else if (newImagePath.startsWith("/assets/")) {
-            // Handle avatar asset paths directly
-            finalImageUrlForDisplay = newImagePath;
-            pathToStore = null; // Store null when it's an avatar asset path
           } else {
-            pathToStore = newImagePath.startsWith("/")
-              ? newImagePath.substring(1)
-              : newImagePath;
-            finalImageUrlForDisplay = `${HOST}/${pathToStore}`;
+            pathToStore = newImagePath;
+            finalImageUrlForDisplay = window.location.origin + newImagePath;
           }
         } else {
-          // If newImagePath is null/undefined, means image removed, likely fallback to avatar
-          finalImageUrlForDisplay = getAvatar(0); // getAvatar(0) gets default
-          pathToStore = null; // Store null for image
+          finalImageUrlForDisplay = getAvatar(0);
+          pathToStore = null;
         }
 
         set((state) => {
@@ -443,9 +433,8 @@ export const useChatStore = create(
             };
           } else if (
             state.selectedChatType === "group" &&
-            state.selectedChatData // Check if selectedChatData exists
+            state.selectedChatData
           ) {
-            // Also update admin/member info if the group is selected
             let groupUpdated = false;
             const updatedMembers =
               state.selectedChatData.members?.map((member) => {

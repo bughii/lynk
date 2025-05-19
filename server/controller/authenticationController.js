@@ -2,6 +2,8 @@ import { User } from "../models/UserModel.js";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { renameSync, unlinkSync } from "fs";
+import path from "path";
+import { s3 } from "../utils/s3Client.js";
 import bcryptjs from "bcryptjs";
 import { generateVerificationToken } from "../utils/generateVerificationToken.js";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
@@ -154,14 +156,12 @@ export const addProfileImage = async (req, res, next) => {
         .json({ message: "Nessun file caricato. Devi caricarne uno." });
     }
 
-    // Generate a unique file name using uuid
-    const fileName = "uploads/profiles/" + uuidv4() + req.file.originalname;
-    renameSync(req.file.path, fileName);
+    const imageUrl = req.file.location;
 
     // Update the user's image field
     const updatedUser = await User.findByIdAndUpdate(
       req.userId,
-      { image: fileName },
+      { image: imageUrl },
       { new: true, runValidators: true }
     );
 
@@ -189,8 +189,17 @@ export const removeProfileImage = async (req, res, next) => {
 
     // If the user has an image, remove it from the filesystem
     if (user.image) {
-      console.log("Removing image: ", user.image);
-      unlinkSync(user.image);
+      try {
+        const key = new URL(user.image).pathname.slice(1);
+        await s3
+          .deleteObject({
+            Bucket: process.env.AWS_S3_BUCKET,
+            Key: key,
+          })
+          .promise();
+      } catch (err) {
+        console.log("S3 DELETE FAILED: ", err);
+      }
     }
 
     // Update the user's image field to null

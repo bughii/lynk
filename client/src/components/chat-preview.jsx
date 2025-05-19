@@ -3,10 +3,9 @@ import { useFriendStore } from "@/store/friendStore";
 import { motion } from "framer-motion";
 import { ScrollArea } from "./ui/scroll-area";
 import { Avatar, AvatarImage } from "./ui/avatar";
-import { getAvatar } from "@/lib/utils";
-import { HOST } from "@/utils/constants";
 import { useTranslation } from "react-i18next";
 import React from "react";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 function ChatPreview() {
   const {
@@ -58,12 +57,7 @@ function ChatPreview() {
             const isSelected =
               selectedChatData && selectedChatData._id === friend._id;
 
-            // Determine final image URL
-            const finalImageSrc = friend.image?.startsWith("http")
-              ? friend.image
-              : friend.image
-              ? `${HOST}/${friend.image}`
-              : getAvatar(friend.avatar); // fallback if no friend.image at all
+            const finalImageSrc = getProfileImage(friend.image, friend.avatar);
 
             return (
               <motion.div

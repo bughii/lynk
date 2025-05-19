@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lynk-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lynk-server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: lynk-server
+    spec:
+      containers:
+        - name: server
+          image: bogdansoflau/lynk-server:def
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9001
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: lynk-server-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: lynk-server-config
+                  key: PORT
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: lynk-secrets
+                  key: mongodb-uri
+            - name: JWT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: lynk-secrets
+                  key: jwt-key
+            - name: CLIENT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: lynk-server-config
+                  key: CLIENT_URL
+            - name: MAILTRAP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: lynk-server-config
+                  key: MAILTRAP_ENDPOINT
+            - name: MAILTRAP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: lynk-secrets
+                  key: mailtrap-token
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: lynk-secrets
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: lynk-secrets
+                  key: aws_secret_access_key
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: lynk-secrets
+                  key: aws_region
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: lynk-secrets
+                  key: aws_s3_bucket
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 9001
+            failureThreshold: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 9001
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 9001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+

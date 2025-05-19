@@ -8,7 +8,6 @@ import { IoArrowForward } from "react-icons/io5";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { HOST } from "@/utils/constants";
 import { useTranslation } from "react-i18next";
 
 const Profile = () => {
@@ -24,8 +23,13 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       setSelectedAvatar(user.avatar || 0);
+
       if (user.image) {
-        setImage(`${HOST}/${user.image}`);
+        // rimuove slash iniziali e prefisso uploads/ se già presente
+        const cleaned = user.image.replace(/^\/?uploads\/?/, "");
+        setImage(`/uploads/${cleaned}`);
+      } else {
+        setImage(null);
       }
     }
   }, [user]);

@@ -24,6 +24,7 @@ import { apiClient } from "@/lib/api-client";
 import { FaArrowLeft } from "react-icons/fa";
 import { useSocket } from "@/context/SocketContext";
 import { FaExclamationTriangle } from "react-icons/fa";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 const CHAT_COLORS = [
   "#3B82F6", // blue
@@ -72,6 +73,7 @@ const Settings = () => {
       setSelectedLanguage(language);
     }
   }, [language, i18n]);
+
   useEffect(() => {
     // If the avatar in the global store exists and is different from local state, update local state
     // Default to 0 if store has null/undefined avatar
@@ -81,7 +83,7 @@ const Settings = () => {
     }
     // Also sync the local preview 'image' state if the user image changes in the store
     if (user?.image) {
-      setImage(`${HOST}/${user.image}`);
+      setImage(user.image);
     } else {
       setImage(null); // Clear local preview if store has no image
     }
@@ -99,34 +101,19 @@ const Settings = () => {
       setSelectedAvatar(user.avatar || 0);
       setUsername(user.userName || "");
       if (user.image) {
-        setImage(`${HOST}/${user.image}`);
+        setImage(user.image);
       }
     }
   }, [user]);
 
   const renderMainAvatar = () => {
-    const imagePath = user?.image;
-    const avatarIndex = user?.avatar;
-    let finalSrc = null;
-
-    if (imagePath) {
-      if (imagePath.startsWith("http") || imagePath.startsWith("data:")) {
-        finalSrc = imagePath;
-      } else {
-        finalSrc = `${HOST}/${
-          imagePath.startsWith("/") ? imagePath.substring(1) : imagePath
-        }`;
-      }
-    } else if (avatarIndex !== undefined && avatarIndex !== null) {
-      finalSrc = getAvatar(avatarIndex);
-    } else {
-    }
+    const finalSrc = getProfileImage(user?.image, user?.avatar);
 
     return (
       <AvatarImage
         key={finalSrc}
         src={finalSrc}
-        alt={imagePath ? "profile-image" : "avatar"}
+        alt={user?.image ? "profile-image" : "avatar"}
         className="object-cover rounded-full"
       />
     );

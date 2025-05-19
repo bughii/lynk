@@ -1,8 +1,5 @@
 import { create } from "zustand";
-import axios from "axios";
-
-const API_URL = "http://localhost:9001/api/friendship";
-axios.defaults.withCredentials = true;
+import { apiClient } from "@/lib/api-client";
 
 export const useFriendStore = create((set) => ({
   friends: [], // List of friends
@@ -16,7 +13,7 @@ export const useFriendStore = create((set) => ({
   // Function to send a friend request
   sendRequest: async (recipientId) => {
     try {
-      const response = await axios.post(`${API_URL}/send-request`, {
+      const response = await apiClient.post("/friendship/send-request", {
         recipientId,
       });
       return response;
@@ -32,7 +29,7 @@ export const useFriendStore = create((set) => ({
   // Function to accept a friend request
   acceptRequest: async (requestId) => {
     try {
-      const response = await axios.post(`${API_URL}/accept-request`, {
+      const response = await apiClient.post("/friendship/accept-request", {
         requestId,
       });
       if (response.status === 200) {
@@ -56,7 +53,7 @@ export const useFriendStore = create((set) => ({
   // Function to reject a friend request
   rejectRequest: async (requestId) => {
     try {
-      const response = await axios.post(`${API_URL}/reject-request`, {
+      const response = await apiClient.post("/friendship/reject-request", {
         requestId,
       });
       if (response.status === 200) {
@@ -79,7 +76,7 @@ export const useFriendStore = create((set) => ({
   // Function to cancel a friend request
   cancelRequest: async (requestId) => {
     try {
-      const response = await axios.post(`${API_URL}/cancel-request`, {
+      const response = await apiClient.post("/friendship/cancel-request", {
         requestId,
       });
       if (response.status === 200) {
@@ -102,14 +99,13 @@ export const useFriendStore = create((set) => ({
   // Function to fetch received requests
   fetchReceivedRequests: async () => {
     try {
-      const response = await axios.get(`${API_URL}/received-requests`);
+      const response = await apiClient.get("/friendship/received-requests");
       set({
         receivedRequests: response.data.receivedRequests || [],
         error: null,
       });
     } catch (error) {
       console.error("Error fetching received requests:", error);
-      // Se l'errore è 404, imposta un array vuoto invece di segnalare un errore
       if (error.response && error.response.status === 404) {
         set({ receivedRequests: [], error: null });
       } else {
@@ -124,7 +120,7 @@ export const useFriendStore = create((set) => ({
   // Function to fetch sent requests
   fetchSentRequests: async () => {
     try {
-      const response = await axios.get(`${API_URL}/sent-requests`);
+      const response = await apiClient.get("/friendship/sent-requests");
 
       set({
         sentRequests: response.data.sentRequests, // Update the state with the sent requests
@@ -139,7 +135,7 @@ export const useFriendStore = create((set) => ({
   // Function to fetch user's friends
   fetchFriends: async (userId) => {
     try {
-      const response = await axios.get(`${API_URL}/get-friends`);
+      const response = await apiClient.get("/friendship/get-friends");
       if (response.status === 200) {
         set({ friends: response.data.friends }); // Update the state with the friends
       }
@@ -152,7 +148,7 @@ export const useFriendStore = create((set) => ({
   // Function to remove a friend
   removeFriend: async (friendId) => {
     try {
-      const response = await axios.post(`${API_URL}/remove-friend`, {
+      const response = await apiClient.post("/friendship/remove-friend", {
         friendId,
       });
 
@@ -173,7 +169,7 @@ export const useFriendStore = create((set) => ({
 
   searchFriends: async (searchTerm) => {
     try {
-      const response = await axios.post(`${API_URL}/search-friends`, {
+      const response = await apiClient.post("/friendship/search-friends", {
         searchTerm,
       });
       set({ searchedFriendsList: response.data.friends });
@@ -190,7 +186,7 @@ export const useFriendStore = create((set) => ({
 
   getChatPreview: async () => {
     try {
-      const response = await axios.get(`${API_URL}/get-friends-preview`);
+      const response = await apiClient.get("/friendship/get-friends-preview");
       set({ friendsPreview: response.data.friends });
       return response;
     } catch (error) {

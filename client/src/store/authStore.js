@@ -1,10 +1,5 @@
 import { create } from "zustand";
-import axios from "axios";
 import { apiClient } from "@/lib/api-client";
-
-const API_URL = "http://localhost:9001/api/auth";
-const CONTACTS_URL = "http://localhost:9001/api/contacts";
-axios.defaults.withCredentials = true;
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -13,7 +8,7 @@ export const useAuthStore = create((set, get) => ({
 
   signup: async (email, password, userName) => {
     try {
-      const response = await axios.post(`${API_URL}/signup`, {
+      const response = await apiClient.post("/auth/signup", {
         email,
         password,
         userName,
@@ -27,7 +22,7 @@ export const useAuthStore = create((set, get) => ({
 
   login: async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, {
+      const response = await apiClient.post("/auth/login", {
         email,
         password,
       });
@@ -40,7 +35,7 @@ export const useAuthStore = create((set, get) => ({
 
   verifyEmail: async (code) => {
     try {
-      const response = await axios.post(`${API_URL}/verify-email`, {
+      const response = await apiClient.post("/auth/verify-email", {
         code,
       });
       set({ user: response.data.user, isAuthenticated: true });
@@ -54,7 +49,7 @@ export const useAuthStore = create((set, get) => ({
   checkAuth: async () => {
     set({ isCheckingAuth: true });
     try {
-      const response = await axios.get(`${API_URL}/check-auth`);
+      const response = await apiClient.get("/auth/check-auth");
       set({
         user: response.data.user,
         isAuthenticated: true,
@@ -68,9 +63,8 @@ export const useAuthStore = create((set, get) => ({
   updateProfile: async (profileData) => {
     // Accepts an object, e.g., { avatar: number } or { userName: string }
     try {
-      // *** CHANGE THIS LINE BACK TO axios.post ***
-      const response = await axios.post(
-        `${API_URL}/update-profile`,
+      const response = await apiClient.post(
+        "/auth/update-profile",
         profileData
       );
 
@@ -80,29 +74,23 @@ export const useAuthStore = create((set, get) => ({
         set((state) => {
           // Start with current user state
           const currentUser = state.user || {};
-          // Update with the data returned from the API response
-          // Adjust based on your actual API response structure (e.g., response.data or response.data.user)
           const updatedUserData = {
             ...currentUser,
             ...(response.data.user || response.data),
           };
 
-          // *** CRITICAL: If avatar is being set, clear the image field ***
           if (profileData.avatar !== undefined && profileData.avatar !== null) {
             updatedUserData.image = null; // Clear custom image path
             updatedUserData.avatar = profileData.avatar; // Ensure the avatar index is explicitly set
             console.log("AuthStore: Avatar set, clearing image path.");
           } else if (profileData.userName !== undefined) {
-            // Example: If updating userName, ensure it's reflected
             updatedUserData.userName = profileData.userName;
           }
-          // Add similar checks if updating other profile fields via this function
 
           return { user: updatedUserData };
         });
-        return response; // Return the full response object
+        return response;
       } else {
-        // Handle non-200 success responses if necessary
         console.error(
           "AuthStore updateProfile: API returned status",
           response.status
@@ -122,59 +110,38 @@ export const useAuthStore = create((set, get) => ({
 
   updateProfileImage: async (formData) => {
     try {
-      const response = await axios.post(
-        `${API_URL}/add-profile-image`, // Ensure this route is correct on your backend
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } } // Correct header for file uploads
-      );
+      const res = await apiClient.post("/auth/add-profile-image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      const imagePathFromApi = response.data?.image; // Image path
+      const s3Url = res.data?.image;
 
-      // Check for success and valid image path
-      if (response.status === 200 && imagePathFromApi) {
-        // Update the Zustand store state using the 'set' function
-        set((state) => {
-          const updatedUser = {
-            ...state.user, // Copy existing user properties
-            image: imagePathFromApi, // Set the new image path from API response
-            avatar: undefined, // Clear the avatar index, as custom image takes precedence
-          };
-
-          return { user: updatedUser };
-        });
-
-        return response;
-      } else {
-        // API call succeeded (status 200) but response lacked the image path,
-        // or the status code was not 200.
-        console.error(
-          "AuthStore updateProfileImage: API check failed or image path missing in response.",
-          response
-        );
-        // Throw an error to be caught by the calling component
-        throw new Error(
-          response.data?.message || // Use server message if available
-            "Invalid response from server when updating image"
-        );
+      if (res.status === 200 && s3Url) {
+        set((state) => ({
+          user: {
+            ...state.user,
+            image: s3Url,
+            avatar: undefined,
+          },
+        }));
+        return res;
       }
-    } catch (error) {
-      // Handle errors from the axios call itself (network errors, 4xx/5xx status codes)
+
+      throw new Error(res.data?.message || "Invalid response from server");
+    } catch (err) {
       console.error(
         "AuthStore updateProfileImage Axios Error:",
-        // Log specific details if available (e.g., error.response.data for server errors)
-        error.response?.data || error.message
+        err.response?.data || err.message
       );
-      // Rethrow the error, potentially extracting a user-friendly message
       throw new Error(
-        error.response?.data?.message || // Use server message if available
-          "Error updating profile image" // Generic fallback message
+        err.response?.data?.message || "Error updating profile image"
       );
     }
   },
 
   removeProfileImage: async () => {
     try {
-      const response = await axios.delete(`${API_URL}/remove-profile-image`);
+      const response = await apiClient.delete("/auth/remove-profile-image");
       console.log(
         "AuthStore removeProfileImage API Response status:",
         response.status
@@ -212,7 +179,7 @@ export const useAuthStore = create((set, get) => ({
 
   forgotPassword: async (email) => {
     try {
-      const response = await axios.post(`${API_URL}/forgot-password`, {
+      const response = await apiClient.post("/auth/forgot-password", {
         email,
       });
       set({ message: response.data.message });
@@ -223,7 +190,7 @@ export const useAuthStore = create((set, get) => ({
 
   resetPassword: async (token, password) => {
     try {
-      const response = await axios.post(`${API_URL}/reset-password/${token}`, {
+      const response = await apiClient.post("/auth/reset-password/${token}", {
         password,
       });
       set({ message: response.data.message });
@@ -234,7 +201,7 @@ export const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      await axios.post(`${API_URL}/logout`);
+      await apiClient.post("/auth/logout");
       set({ user: null, isAuthenticated: false });
     } catch (error) {
       throw new Error("Errore durante il logout");
@@ -243,7 +210,7 @@ export const useAuthStore = create((set, get) => ({
 
   addContact: async (searchTerm) => {
     try {
-      const response = await axios.post(`${CONTACTS_URL}/search`, {
+      const response = await apiClient.post("/contacts/search", {
         searchTerm,
       });
       return response;

@@ -1,13 +1,13 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
 import { useState } from "react";
-import { HOST } from "@/utils/constants";
 import { useAuthStore } from "@/store/authStore";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFriendStore } from "@/store/friendStore";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { FaSearch } from "react-icons/fa";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 function AddContact() {
   const [searchedContacts, setSearchedContacts] = useState([]);
@@ -80,7 +80,7 @@ function AddContact() {
                   <Avatar className="h-12 w-12 rounded-full overflow-hidden">
                     {contact.image ? (
                       <AvatarImage
-                        src={`${HOST}/${contact.image}`}
+                        src={getProfileImage(contact.image, contact.avatar)}
                         alt="profile-image"
                         className="object-cover w-full h-full bg-black"
                       />
