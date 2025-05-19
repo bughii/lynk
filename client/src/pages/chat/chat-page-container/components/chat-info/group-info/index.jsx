@@ -16,7 +16,6 @@ import {
   FaComment,
 } from "react-icons/fa";
 import { getAvatar } from "@/lib/utils";
-import { HOST } from "@/utils/constants";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { useTranslation } from "react-i18next";
@@ -33,6 +32,7 @@ import ConfirmDialog from "../confirm-dialog";
 import { useSocket } from "@/context/SocketContext";
 import AddMembersDialog from "./add-members-dialog";
 import GroupMediaDialog from "./media-dialog";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 function GroupInfoDialog({ open, onOpenChange, group }) {
   const socket = useSocket();
@@ -516,7 +516,10 @@ function GroupInfoDialog({ open, onOpenChange, group }) {
                           <Avatar className="h-10 w-10 mr-3">
                             {member.image ? (
                               <AvatarImage
-                                src={`${HOST}/${member.image}`}
+                                src={getProfileImage(
+                                  member.image,
+                                  member.avatar
+                                )}
                                 alt="profile-image"
                                 className="object-cover w-full h-full"
                               />

@@ -4,9 +4,9 @@ import { FaCheck, FaTimes } from "react-icons/fa";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
 import { toast } from "sonner";
-import { HOST } from "@/utils/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranslation } from "react-i18next";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 const FriendRequests = () => {
   const {
@@ -66,7 +66,7 @@ const FriendRequests = () => {
                   <Avatar className="h-12 w-12 rounded-full overflow-hidden">
                     {user.image ? (
                       <AvatarImage
-                        src={`${HOST}/${user.image}`}
+                        src={getProfileImage(user.image, user.avatar)}
                         alt="profile-image"
                         className="object-cover w-full h-full bg-black"
                       />

@@ -2,11 +2,11 @@ import React, { useEffect } from "react";
 import { useFriendStore } from "@/store/friendStore";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
-import { HOST } from "@/utils/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FiUserMinus } from "react-icons/fi";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 const FriendList = () => {
   const { friends, fetchFriends, removeFriend } = useFriendStore();
@@ -46,7 +46,7 @@ const FriendList = () => {
                 <Avatar className="h-12 w-12 rounded-full overflow-hidden">
                   {friend.image ? (
                     <AvatarImage
-                      src={`${HOST}/${friend.image}`}
+                      src={getProfileImage(friend.image, friend.avatar)}
                       alt="profile-image"
                       className="object-cover w-full h-full bg-black"
                     />

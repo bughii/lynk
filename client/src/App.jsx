@@ -9,7 +9,6 @@ import ForgotPasswordPage from "./pages/forgot-password";
 import ResetPasswordPage from "./pages/reset-password";
 import Settings from "./pages/chat/contacts-list/components/profile-settings";
 import LanguageProvider from "./context/LanguageProvider";
-import { useChatStore } from "./store/chatStore";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();

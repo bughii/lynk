@@ -12,7 +12,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 import {
   FaUserPlus,
@@ -196,10 +195,13 @@ function AddMembersDialog({
                       <Avatar className="h-10 w-10 mr-3">
                         {friend.image ? (
                           <AvatarImage
-                            src={`${HOST}/${friend.image}`}
-                            alt="profile"
-                            className="object-cover w-full h-full"
-                          />
+                          src={
+                            friend.image?.startsWith("http")
+                              ? friend.image
+                              : `/uploads/${friend.image}`
+                          }
+                          alt="profile"
+                        />
                         ) : (
                           <AvatarImage
                             src={getAvatar(friend.avatar)}

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lynk-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lynk-client
+  template:
+    metadata:
+      labels:
+        app: lynk-client
+    spec:
+      containers:
+      - name: client
+        image: bogdansoflau/lynk-client:s3-1
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: client-nginx-config

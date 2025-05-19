@@ -11,6 +11,7 @@ import friendsRoutes from "./routes/friendsRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
 import { User } from "./models/UserModel.js";
 import blockRoutes from "./routes/blockRoutes.js";
+import healthRoutes from "./routes/healthRoutes.js";
 
 // Dotenv config
 dotenv.config();
@@ -21,10 +22,8 @@ const databaseURL = process.env.DATABASE_URL;
 
 app.use(
   cors({
-    origin: ["http://localhost", "http://client"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    origin: true,
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
@@ -46,6 +45,7 @@ app.use("/api/messages", messagesRoutes);
 app.use("/api/friendship", friendsRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/block", blockRoutes);
+app.use("/api", healthRoutes);
 
 const server = app.listen(port, () => {
   console.log(`Server sta runnando sulla porta ${port}`);

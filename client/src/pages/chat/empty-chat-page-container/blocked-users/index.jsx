@@ -3,12 +3,12 @@ import { useFriendStore } from "@/store/friendStore";
 import { FaUnlock } from "react-icons/fa";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getAvatar } from "@/lib/utils";
-import { HOST } from "@/utils/constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 const BlockedUsersList = () => {
   const { t } = useTranslation();
@@ -74,7 +74,7 @@ const BlockedUsersList = () => {
                 <Avatar className="h-12 w-12 rounded-full overflow-hidden">
                   {user.image ? (
                     <AvatarImage
-                      src={`${HOST}/${user.image}`}
+                      src={getProfileImage(user.image, user.avatar)}
                       alt="profile-image"
                       className="object-cover w-full h-full bg-black"
                     />

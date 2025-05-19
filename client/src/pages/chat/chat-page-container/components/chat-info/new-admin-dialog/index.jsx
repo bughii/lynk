@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 import { FaCrown, FaCheck } from "react-icons/fa";
 
@@ -58,7 +57,7 @@ function NewAdminDialog({ open, onOpenChange, members, onAdminSelected }) {
                   <Avatar className="h-10 w-10 mr-3">
                     {member.image ? (
                       <AvatarImage
-                        src={`${HOST}/${member.image}`}
+                        src={member.image.startsWith("http") ? member.image : `/uploads/${member.image}`}
                         alt="profile-image"
                         className="object-cover w-full h-full"
                       />

@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { HOST } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 import { useFriendStore } from "@/store/friendStore";
 import { useChatStore } from "@/store/chatStore";
@@ -131,7 +130,11 @@ function StartChat() {
                     <Avatar className="h-12 w-12 mr-4">
                       {friend.image ? (
                         <AvatarImage
-                          src={`${HOST}/${friend.image}`}
+                          src={
+                            friend.image.startsWith("http")
+                              ? friend.image
+                              : `/uploads/${friend.image}`
+                          }
                           alt="profile-image"
                           className="object-cover w-full h-full bg-black"
                         />

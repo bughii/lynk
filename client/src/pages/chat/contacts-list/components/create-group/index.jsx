@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { CREATE_GROUP_ROUTE, HOST } from "@/utils/constants";
+import { CREATE_GROUP_ROUTE } from "@/utils/constants";
 import { getAvatar } from "@/lib/utils";
 import { useFriendStore } from "@/store/friendStore";
 import { apiClient } from "@/lib/api-client";
@@ -319,7 +319,11 @@ function CreateGroup() {
                           <Avatar className="h-12 w-12 mr-4">
                             {friend.image ? (
                               <AvatarImage
-                                src={`${HOST}/${friend.image}`}
+                                src={
+                                  friend.image.startsWith("http")
+                                    ? friend.image
+                                    : `/uploads/${friend.image}`
+                                }
                                 alt="profile-image"
                                 className="object-cover w-full h-full bg-black"
                               />

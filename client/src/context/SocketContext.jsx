@@ -35,11 +35,11 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     // If the user is authenticated, create a new socket connection
     if (userId) {
-      const newSocket = io(HOST, {
+      const newSocket = io(window.location.origin, {
         path: "/socket.io/",
         withCredentials: true,
         query: { userId: userId },
-        transports: ["websocket", "polling"],
+        transports: ["websocket"],
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
       });

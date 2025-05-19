@@ -4,7 +4,6 @@ import { useAuthStore } from "@/store/authStore";
 import moment from "moment";
 import { apiClient } from "@/lib/api-client";
 import { GET_GROUP_MESSAGES, GET_MESSAGES_ROUTE } from "@/utils/constants";
-import { HOST } from "@/utils/constants";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { FaFileArchive, FaBan } from "react-icons/fa";
 import { IoCloseSharp } from "react-icons/io5";
@@ -18,6 +17,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { useSocket } from "@/context/SocketContext";
+import { getProfileImage } from "@/lib/getProfileImage";
 
 const FONT_SIZES = {
   small: "1rem",
@@ -183,7 +183,7 @@ function MessageContainer() {
 
   const downloadFile = async (url) => {
     // Send HTTP request to retrieve the file from the server
-    const response = await apiClient.get(`${HOST}/${url}`, {
+    const response = await apiClient.get(`/uploads/${url}`, {
       responseType: "blob", // Binary data (blob)
     });
 
@@ -280,7 +280,12 @@ function MessageContainer() {
                 }}
               >
                 <img
-                  src={`${HOST}/${message.fileURL}`}
+                  src={
+                    message.fileURL.startsWith("http") ||
+                    message.fileURL.startsWith("data:")
+                      ? message.fileURL
+                      : `/uploads/${message.fileURL.replace(/^\/+/, "")}`
+                  }
                   alt="file"
                   height={300}
                   width={300}
@@ -347,7 +352,10 @@ function MessageContainer() {
           <Avatar className="h-8 w-8 flex-shrink-0">
             {message.sender.image ? (
               <AvatarImage
-                src={`${HOST}/${message.sender.image}`}
+                src={getProfileImage(
+                  message.sender.image,
+                  message.sender.avatar
+                )}
                 alt="profile-image"
                 className="object-cover w-full h-full bg-black"
               />
@@ -396,7 +404,12 @@ function MessageContainer() {
                   }}
                 >
                   <img
-                    src={`${HOST}/${message.fileURL}`}
+                    src={
+                      message.fileURL.startsWith("http") ||
+                      message.fileURL.startsWith("data:")
+                        ? message.fileURL
+                        : `/uploads/${message.fileURL.replace(/^\/+/, "")}`
+                    }
                     alt="file"
                     className="max-h-[300px] w-auto rounded"
                   />
@@ -437,8 +450,13 @@ function MessageContainer() {
       {showImage && (
         <div className="fixed z-[1000] top-0 left-0 h-[100vh] w-[100vw] flex items-center justify-center backdrop-blur-lg flex-col">
           <div>
+            +{" "}
             <img
-              src={`${HOST}/${imageURL}`}
+              src={
+                imageURL.startsWith("http") || imageURL.startsWith("data:")
+                  ? imageURL
+                  : `/uploads/${imageURL.replace(/^\/+/, "")}`
+              }
               className="h-[80vh] w-full bg-cover"
             />
           </div>

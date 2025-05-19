@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "@/lib/api-client";
-import { HOST } from "@/utils/constants";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -73,7 +72,7 @@ function GroupMediaDialog({ open, onOpenChange, groupId }) {
 
   const downloadFile = async (fileUrl) => {
     try {
-      const response = await apiClient.get(`${HOST}/${fileUrl}`, {
+      const response = await apiClient.get(`/uploads/${fileUrl}`, {
         responseType: "blob",
       });
 
@@ -120,10 +119,13 @@ function GroupMediaDialog({ open, onOpenChange, groupId }) {
                   <div className="w-full aspect-square flex items-center justify-center mb-2 overflow-hidden rounded-md">
                     {isImageFile(file.fileType) ? (
                       <img
-                        src={`${HOST}/${file.fileURL}`}
-                        alt={file.fileName}
-                        className="object-cover w-full h-full"
-                      />
+                      src={
+                        file.fileURL.startsWith("http")
+                          ? file.fileURL
+                          : `/uploads/${file.fileURL}`
+                      }
+                      alt={file.fileName}
+                    />
                     ) : (
                       <div className="flex flex-col items-center justify-center">
                         {getFileIcon(file.fileType)}
@@ -179,7 +181,7 @@ function GroupMediaDialog({ open, onOpenChange, groupId }) {
             >
               {isImageFile(selectedFile.fileType) ? (
                 <img
-                  src={`${HOST}/${selectedFile.fileURL}`}
+                  src={file.fileURL.startsWith("http") ? file.fileURL : `/uploads/${selectedFile.fileURL}`}
                   alt={selectedFile.fileName}
                   className="max-h-[80vh] max-w-full object-contain"
                 />

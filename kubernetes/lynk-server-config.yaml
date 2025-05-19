@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lynk-server-config
+data:
+  NODE_ENV: "production"
+  PORT: "9001"
+  ALLOWED_ORIGINS: "http://lynk-client,http://lynk-client.default.svc.cluster.local,http://localhost"
+  CLIENT_URL: "http://lynk-client"
+  MAILTRAP_ENDPOINT: "https://send.api.mailtrap.io/"
